@@ -32,7 +32,66 @@ const FinanceDashboard: React.FC = () => {
 
       {/* Main Content Area */}
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Dashboard content will go here */}
+        {/* Pending Claims Card */}
+        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-xl font-semibold text-gray-800">Pending Claims</h2>
+          </div>
+          
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee Name</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Risk Level</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {/* Row 1: Rejected */}
+                <tr>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">John Doe</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Oct 24, 2026</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">$450.00</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Lodging</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                      Rejected
+                    </span>
+                  </td>
+                </tr>
+
+                {/* Row 2: Flagged */}
+                <tr>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Jane Smith</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Oct 25, 2026</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">$120.50</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Meals</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                      Flagged
+                    </span>
+                  </td>
+                </tr>
+
+                {/* Row 3: Approved */}
+                <tr>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Alice Johnson</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Oct 26, 2026</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">$45.00</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Transport</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                      Approved
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </main>
     </div>
   );
