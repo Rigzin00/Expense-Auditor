@@ -22,13 +22,16 @@ const EmployeePortal: React.FC = () => {
   const isSubmitDisabled = !selectedFile || !businessPurpose.trim();
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white rounded-xl shadow-md p-6 sm:p-8">
-        <h1 className="text-2xl font-bold text-gray-800 text-center mb-6">
-          Submit New Expense
-        </h1>
+    <div className="min-h-screen bg-gray-100 flex flex-col items-center py-10 px-4">
+      <div className="w-full max-w-md space-y-6">
         
-        <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Upload Card */}
+        <div className="bg-white rounded-xl shadow-md p-6 sm:p-8">
+          <h1 className="text-2xl font-bold text-gray-800 text-center mb-6">
+            Submit New Expense
+          </h1>
+          
+          <form onSubmit={handleSubmit} className="space-y-6">
           {/* File Dropzone */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -103,6 +106,35 @@ const EmployeePortal: React.FC = () => {
             Submit Expense
           </button>
         </form>
+        </div>
+
+        {/* Recent Claims Section */}
+        <div className="bg-white rounded-xl shadow-md p-6 sm:p-8">
+          <h2 className="text-xl font-bold text-gray-800 mb-4">
+            Recent Claims
+          </h2>
+          <ul className="space-y-3">
+            <li className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-200">
+              <div className="flex flex-col">
+                <span className="font-medium text-gray-800">Uber to Client Meeting</span>
+                <span className="text-sm text-gray-500">$45.00</span>
+              </div>
+              <span className="px-2.5 py-1 text-xs font-semibold text-green-700 bg-green-100 rounded-full">
+                Approved
+              </span>
+            </li>
+            
+            <li className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-200">
+              <div className="flex flex-col">
+                <span className="font-medium text-gray-800">Team Lunch</span>
+                <span className="text-sm text-gray-500">$120.00</span>
+              </div>
+              <span className="px-2.5 py-1 text-xs font-semibold text-yellow-700 bg-yellow-100 rounded-full">
+                Pending Audit
+              </span>
+            </li>
+          </ul>
+        </div>
       </div>
     </div>
   );
