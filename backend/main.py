@@ -9,6 +9,7 @@ import uuid
 from database import engine, SessionLocal, Base
 import models
 import schemas
+from services.ocr_service import process_receipt_image
 
 # Create all database tables on startup
 models.Base.metadata.create_all(bind=engine)
@@ -57,19 +58,22 @@ async def submit_expense(
             }
         )
 
+    # Extract data from the image dynamically
+    extracted_data = await process_receipt_image(file)
+
     # Generate a random string ID
     expense_id = f"exp_{uuid.uuid4().hex[:8]}"
 
-    # Hardcode mock OCR data & AI Status as requested
+    # Use the dynamically extracted OCR mapping for the Database object!
     new_expense = models.Expense(
         id=expense_id,
         employee_name="Temporary User",
-        expense_date="2026-04-01",
-        amount=45.0,
-        category="Transport",
+        expense_date=extracted_data["date"],
+        amount=extracted_data["total_amount"],
+        category=extracted_data["category"],
         business_purpose=businessPurpose,
         risk_level="Flagged",
-        ai_reasoning="Flagged: Needs review.",
+        ai_reasoning=f"Flagged based on {extracted_data['merchant_name']} logic. Needs review.",
         receipt_image_url=f"https://storage.provider.com/receipts/{expense_id}.jpg"
     )
 
