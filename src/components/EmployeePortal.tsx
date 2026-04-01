@@ -5,10 +5,12 @@ const EmployeePortal: React.FC = () => {
   const [businessPurpose, setBusinessPurpose] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [showSuccessBanner, setShowSuccessBanner] = useState<boolean>(false);
+  const [hasError, setHasError] = useState<boolean>(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       setSelectedFile(e.target.files[0].name);
+      setHasError(false); // Clear error on new file
     }
   };
 
@@ -35,7 +37,7 @@ const EmployeePortal: React.FC = () => {
     }, 1500);
   };
 
-  const isSubmitDisabled = !selectedFile || !businessPurpose.trim() || isSubmitting;
+  const isSubmitDisabled = !selectedFile || !businessPurpose.trim() || isSubmitting || hasError;
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center py-10 px-4">
@@ -65,7 +67,11 @@ const EmployeePortal: React.FC = () => {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Receipt
             </label>
-            <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md relative cursor-pointer hover:border-blue-500 transition-colors">
+            <div className={`mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed rounded-md relative cursor-pointer transition-colors ${
+              hasError 
+                ? 'border-red-500 hover:border-red-600 bg-red-50' 
+                : 'border-gray-300 hover:border-blue-500'
+            }`}>
               <div className="space-y-1 text-center">
                 {selectedFile ? (
                   <div className="text-sm text-gray-900 font-medium break-all">
@@ -121,6 +127,12 @@ const EmployeePortal: React.FC = () => {
             />
           </div>
 
+          {hasError && (
+            <div className="text-sm font-semibold text-red-600 mt-2">
+              Validation Failed: The date on the receipt does not match the claimed expense date. Please review.
+            </div>
+          )}
+
           {/* Submit Button */}
           <button
             type="submit"
@@ -133,6 +145,17 @@ const EmployeePortal: React.FC = () => {
           >
             {isSubmitting ? 'Analyzing Policy...' : 'Submit Expense'}
           </button>
+
+          {/* Toggle Mock Error Link */}
+          <div className="text-center mt-4">
+            <button
+              type="button"
+              onClick={() => setHasError(!hasError)}
+              className="text-xs text-gray-400 hover:text-gray-600 underline focus:outline-none"
+            >
+              Toggle Mock Error
+            </button>
+          </div>
         </form>
         </div>
 
