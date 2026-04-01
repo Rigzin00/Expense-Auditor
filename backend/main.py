@@ -4,6 +4,13 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Optional
 
+from database import engine, Base
+import models
+import schemas
+
+# Create all database tables on startup
+Base.metadata.create_all(bind=engine)
+
 app = FastAPI(
     title="Policy-First Expense Auditor API",
     description="Backend API for the React frontend.",
