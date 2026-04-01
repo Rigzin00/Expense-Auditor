@@ -1,44 +1,35 @@
 # Policy-First Expense Auditor
 
 ## The Problem
-Corporate finance teams struggle with manually cross-referencing thousands of employee receipts against complex, lengthy Travel & Expense policies. This manual, repetitive process is highly susceptible to policy ambiguity and scales poorly, resulting in massive spend leakage from non-compliant claims and multi-week delays in employee reimbursements.
+Corporate finance teams manually cross-reference employee expense receipts against lengthy Travel & Expense Policies. This process is slow and error-prone due to complex regional rules and ambiguous receipts, leading to massive reimbursement backlogs and "Spend Leakage" from non-compliant claims.
 
 ## The Solution
-The **Policy-First Expense Auditor** automates corporate expense compliance by intelligently cross-referencing digitized receipts against corporate policy documents. It streamlines the entire reimbursement lifecycle through three key pillars:
+The Policy-First Expense Auditor is an intelligent system that eliminates manual cross-referencing by simultaneously reading expense receipts and the company policy document. Key features include:
 
-1. **Digital Receipt & Narrative Ingestion:** A mobile-friendly employee portal that accepts image/PDF uploads, utilizes OCR to extract key transaction data (Merchant, Date, Amount, Currency), and captures the employee's justification.
-2. **Automated Policy Cross-Reference Engine:** An intelligent auditor engine that retrieves relevant rules from the company's digitized policy manual (e.g., regional spending limits) and contextually validates the expense business purpose against constraints.
-3. **Intelligent Flagging & Dispute Dashboard:** A dedicated dashboard for finance auditors that categorizes claims using a traffic-light system (Approved, Flagged, Rejected) and automatically generates rejection explanations citing specific policy rules, while keeping a human-in-the-loop for final overrides.
+* A digital ingestion portal that uses OCR to automatically extract Merchant Name, Date, Total Amount, and Currency from uploaded receipts.
+* An automated Policy Cross-Reference Engine that searches the policy rules based on expense categories.
+* An AI auditor that evaluates regional limits and constraints, automatically categorizing every claim as Approved, Flagged, or Rejected with a clear 1-sentence explanation citing the specific rule.
+Key features include:
+* [cite_start]A digital ingestion portal that uses OCR to automatically extract Merchant Name, Date, Total Amount, and Currency from uploaded receipts[cite: 114, 117].
+* [cite_start]An automated Policy Cross-Reference Engine that searches the policy rules based on expense categories[cite: 120, 122].
+* [cite_start]An AI auditor that evaluates regional limits and constraints, automatically categorizing every claim as Approved, Flagged, or Rejected with a clear 1-sentence explanation citing the specific rule[cite: 123, 128].
 
 ## Tech Stack
-- **Dependencies (Frontend):** React, TypeScript, Tailwind CSS, Vite
-- **Backend Framework:** Python, FastAPI
-- **Database:** PostgreSQL
-- **APIs & Third-Party Tools:** 
-  - OpenAI API / GPT (for intelligent policy retrieval and contextual audits)
-  - OCR APIs (e.g., Tesseract, AWS Textract, or DocumentAI for receipt extraction)
-  - LangChain / LlamaIndex (for RAG over the 40+ page policy PDFs)
+* **Frontend:** React, Tailwind CSS
+* **Backend:** Python (FastAPI) or Node.js (Express)
+* **AI/OCR:** Google Cloud Vision API (for receipt extraction), LangChain & OpenAI/Gemini (for Policy RAG evaluation)
+* **Database:** PostgreSQL (with pgvector for policy embeddings)
 
 ## Setup Instructions
-
-### Prerequisites
-- Node.js
-- npm (Node Package Manager)
-
-### Install dependencies
-1. Clone the repository to your local machine.
-2. Navigate to the project directory:
-   \\\ash
-   cd Expense Auditor
-   \\\
-3. Install frontend dependencies:
-   \\\ash
-   npm install
-   \\\
-
-### Run the project locally
-1. Start the Vite development server:
-   \\\ash
-   npm run dev
-   \\\
-2. Open your browser and navigate to the address shown in your terminal (typically http://localhost:5173).
+1. **Clone the repository:**
+   `git clone https://github.com/yourusername/policy-first-expense-auditor.git`
+2. **Install Frontend Dependencies:**
+   `cd frontend`
+   `npm install`
+3. **Run the Frontend locally:**
+   `npm start`
+4. **Install Backend Dependencies:**
+   `cd backend`
+   `pip install -r requirements.txt`
+5. **Run the Backend locally:**
+   `uvicorn main:app --reload`
