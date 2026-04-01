@@ -1,10 +1,14 @@
 # Policy-First Expense Auditor
 
 ## The Problem
-[cite_start]Corporate finance teams manually cross-reference employee expense receipts against lengthy Travel & Expense Policies[cite: 105]. [cite_start]This process is slow and error-prone due to complex regional rules and ambiguous receipts, leading to massive reimbursement backlogs and "Spend Leakage" from non-compliant claims[cite: 106, 107, 109, 110].
+Corporate finance teams manually cross-reference employee expense receipts against lengthy Travel & Expense Policies. This process is slow and error-prone due to complex regional rules and ambiguous receipts, leading to massive reimbursement backlogs and "Spend Leakage" from non-compliant claims.
 
 ## The Solution
-[cite_start]The Policy-First Expense Auditor is an intelligent system that eliminates manual cross-referencing by simultaneously reading expense receipts and the company policy document[cite: 112]. 
+The Policy-First Expense Auditor is an intelligent system that eliminates manual cross-referencing by simultaneously reading expense receipts and the company policy document. Key features include:
+
+* A digital ingestion portal that uses OCR to automatically extract Merchant Name, Date, Total Amount, and Currency from uploaded receipts.
+* An automated Policy Cross-Reference Engine that searches the policy rules based on expense categories.
+* An AI auditor that evaluates regional limits and constraints, automatically categorizing every claim as Approved, Flagged, or Rejected with a clear 1-sentence explanation citing the specific rule.
 Key features include:
 * [cite_start]A digital ingestion portal that uses OCR to automatically extract Merchant Name, Date, Total Amount, and Currency from uploaded receipts[cite: 114, 117].
 * [cite_start]An automated Policy Cross-Reference Engine that searches the policy rules based on expense categories[cite: 120, 122].
