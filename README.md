@@ -1,73 +1,44 @@
-# React + TypeScript + Vite
+# Policy-First Expense Auditor
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## The Problem
+Corporate finance teams struggle with manually cross-referencing thousands of employee receipts against complex, lengthy Travel & Expense policies. This manual, repetitive process is highly susceptible to policy ambiguity and scales poorly, resulting in massive spend leakage from non-compliant claims and multi-week delays in employee reimbursements.
 
-Currently, two official plugins are available:
+## The Solution
+The **Policy-First Expense Auditor** automates corporate expense compliance by intelligently cross-referencing digitized receipts against corporate policy documents. It streamlines the entire reimbursement lifecycle through three key pillars:
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+1. **Digital Receipt & Narrative Ingestion:** A mobile-friendly employee portal that accepts image/PDF uploads, utilizes OCR to extract key transaction data (Merchant, Date, Amount, Currency), and captures the employee's justification.
+2. **Automated Policy Cross-Reference Engine:** An intelligent auditor engine that retrieves relevant rules from the company's digitized policy manual (e.g., regional spending limits) and contextually validates the expense business purpose against constraints.
+3. **Intelligent Flagging & Dispute Dashboard:** A dedicated dashboard for finance auditors that categorizes claims using a traffic-light system (Approved, Flagged, Rejected) and automatically generates rejection explanations citing specific policy rules, while keeping a human-in-the-loop for final overrides.
 
-## React Compiler
+## Tech Stack
+- **Dependencies (Frontend):** React, TypeScript, Tailwind CSS, Vite
+- **Backend Framework:** Python, FastAPI
+- **Database:** PostgreSQL
+- **APIs & Third-Party Tools:** 
+  - OpenAI API / GPT (for intelligent policy retrieval and contextual audits)
+  - OCR APIs (e.g., Tesseract, AWS Textract, or DocumentAI for receipt extraction)
+  - LangChain / LlamaIndex (for RAG over the 40+ page policy PDFs)
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Setup Instructions
 
-## Expanding the ESLint configuration
+### Prerequisites
+- Node.js
+- npm (Node Package Manager)
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### Install dependencies
+1. Clone the repository to your local machine.
+2. Navigate to the project directory:
+   \\\ash
+   cd Expense Auditor
+   \\\
+3. Install frontend dependencies:
+   \\\ash
+   npm install
+   \\\
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+### Run the project locally
+1. Start the Vite development server:
+   \\\ash
+   npm run dev
+   \\\
+2. Open your browser and navigate to the address shown in your terminal (typically http://localhost:5173).
