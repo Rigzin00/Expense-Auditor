@@ -1,16 +1,20 @@
 import logging
+import os
+os.environ["CHROMA_TELEMETRY"] = "False"
+os.environ["ANONYMIZED_TELEMETRY"] = "False"  # Disable noisy ChromaDB telemetry
+
 from pydantic import BaseModel, Field
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
 from langchain_community.vectorstores import Chroma
-from langchain_community.document_loaders import TextLoader
+from langchain_core.prompts import PromptTemplate
 
 logger = logging.getLogger(__name__)
 
 class AuditResult(BaseModel):
     status: str = Field(description="Must be 'Approved', 'Flagged', or 'Rejected'")
-    ai_reasoning: str = Field(description="A 1-sentence citation of the rule")
+    ai_reasoning: str = Field(description="A 1-sentence explanation citing the specific rule")
 
 def ingest_policy_pdf():
     """
@@ -18,18 +22,22 @@ def ingest_policy_pdf():
     and stores the embeddings in a local Chroma vector store.
     """
     try:
-        loader = TextLoader("policy.pdf")
+        # FIX 1: Use PyPDFLoader to correctly parse the PDF
+        loader = PyPDFLoader("policy.pdf")
         docs = loader.load()
         
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
         splits = text_splitter.split_documents(docs)
         
-        embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+        # FIX 2: Consistently use gemini-embedding-001
+        embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001")
+        # FIX 3: Explicitly persist the database to the disk so evaluate_expense can find it
         vectorstore = Chroma.from_documents(
             documents=splits, 
-            embedding=embeddings, 
-            persist_directory="./chroma_db"
+            embedding=embeddings,
+            persist_directory="./chroma_db" 
         )
+        logger.info("Successfully ingested policy PDF into ChromaDB.")
         return vectorstore
     except Exception as e:
         logger.error("Failed to ingest policy PDF: %s", e)
@@ -41,20 +49,20 @@ async def evaluate_expense(receipt_data: dict, business_purpose: str) -> dict:
     and returns a structured status and reasoning using an LLM.
     """
     try:
-        # Load the local Chroma DB with Google embeddings
-        embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+        # FIX 4: Use the EXACT same embedding model to read the database!
+        embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001")
         vectorstore = Chroma(
             persist_directory="./chroma_db", 
             embedding_function=embeddings
         )
         
         # Determine strict relevant context
-        query = f"Category: {receipt_data.get('category')} Purpose: {business_purpose}"
+        query = f"Category: {receipt_data.get('category', 'General')} Purpose: {business_purpose}"
         retrieved_docs = vectorstore.similarity_search(query, k=3)
         policy_rules = "\n\n".join([doc.page_content for doc in retrieved_docs])
         
-        # Initialize Google GenAI model
-        llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro", temperature=0)
+        # Initialize Google GenAI model (using newer flash available on this key)
+        llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0)
         structured_llm = llm.with_structured_output(AuditResult)
         
         prompt_template = PromptTemplate.from_template("""
