@@ -10,6 +10,7 @@ from database import engine, SessionLocal, Base
 import models
 import schemas
 from services.ocr_service import process_receipt_image
+from services.ai_auditor import evaluate_expense
 
 # Create all database tables on startup
 models.Base.metadata.create_all(bind=engine)
@@ -61,6 +62,9 @@ async def submit_expense(
     # Extract data from the image dynamically
     extracted_data = await process_receipt_image(file)
 
+    # Evaluate the policy via LangChain RAG
+    ai_eval = await evaluate_expense(extracted_data, businessPurpose)
+
     # Generate a random string ID
     expense_id = f"exp_{uuid.uuid4().hex[:8]}"
 
@@ -72,8 +76,8 @@ async def submit_expense(
         amount=extracted_data["total_amount"],
         category=extracted_data["category"],
         business_purpose=businessPurpose,
-        risk_level="Flagged",
-        ai_reasoning=f"Flagged based on {extracted_data['merchant_name']} logic. Needs review.",
+        risk_level=ai_eval.get("status", "Flagged"),
+        ai_reasoning=ai_eval.get("ai_reasoning", f"Flagged based on {extracted_data['merchant_name']} logic. Needs review."),
         receipt_image_url=f"https://storage.provider.com/receipts/{expense_id}.jpg"
     )
 
