@@ -4,7 +4,7 @@ from database import Base
 class Expense(Base):
     __tablename__ = "expenses"
 
-    id = Column(String, primary key=True, index=True)
+    id = Column(String, primary_key=True, index=True)
     employee_name = Column(String, index=True)
     expense_date = Column(String)
     amount = Column(Float)
