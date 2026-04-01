@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 const EmployeePortal: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [businessPurpose, setBusinessPurpose] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [showSuccessBanner, setShowSuccessBanner] = useState<boolean>(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -16,15 +18,41 @@ const EmployeePortal: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Submitting expense:', { selectedFile, businessPurpose });
+    if (isSubmitting) return;
+
+    setIsSubmitting(true);
+    setShowSuccessBanner(false);
+
+    // Simulate network delay
+    setTimeout(() => {
+      setSelectedFile(null);
+      setBusinessPurpose('');
+      setIsSubmitting(false);
+      setShowSuccessBanner(true);
+      
+      // Hide banner after 3 seconds
+      setTimeout(() => setShowSuccessBanner(false), 3000);
+    }, 1500);
   };
 
-  const isSubmitDisabled = !selectedFile || !businessPurpose.trim();
+  const isSubmitDisabled = !selectedFile || !businessPurpose.trim() || isSubmitting;
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center py-10 px-4">
       <div className="w-full max-w-md space-y-6">
         
+        {/* Success Banner */}
+        {showSuccessBanner && (
+          <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-xl shadow-sm" role="alert">
+            <div className="flex items-center">
+              <svg className="w-5 h-5 mr-2 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              <span className="font-medium text-sm">Receipt securely sent to AI Auditor</span>
+            </div>
+          </div>
+        )}
+
         {/* Upload Card */}
         <div className="bg-white rounded-xl shadow-md p-6 sm:p-8">
           <h1 className="text-2xl font-bold text-gray-800 text-center mb-6">
@@ -103,7 +131,7 @@ const EmployeePortal: React.FC = () => {
                 : 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
             }`}
           >
-            Submit Expense
+            {isSubmitting ? 'Analyzing Policy...' : 'Submit Expense'}
           </button>
         </form>
         </div>
