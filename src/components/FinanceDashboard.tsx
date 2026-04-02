@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 interface Expense {
   id: string;
@@ -11,6 +12,7 @@ interface Expense {
 
 const FinanceDashboard: React.FC = () => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchExpenses = async () => {
@@ -91,7 +93,11 @@ const FinanceDashboard: React.FC = () => {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {expenses.map((expense) => (
-                  <tr key={expense.id}>
+                  <tr 
+                    key={expense.id} 
+                    onClick={() => navigate(`/audit/${expense.id}`)}
+                    className="cursor-pointer hover:bg-gray-50 transition-colors"
+                  >
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{expense.employeeName}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{expense.date}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${Number(expense.amount).toFixed(2)}</td>
