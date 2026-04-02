@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 
 const EmployeePortal: React.FC = () => {
-  const [selectedFile, setSelectedFile] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [businessPurpose, setBusinessPurpose] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [showSuccessBanner, setShowSuccessBanner] = useState<boolean>(false);
@@ -9,7 +9,7 @@ const EmployeePortal: React.FC = () => {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      setSelectedFile(e.target.files[0].name);
+      setSelectedFile(e.target.files[0]);
       setHasError(false); // Clear error on new file
     }
   };
@@ -18,15 +18,34 @@ const EmployeePortal: React.FC = () => {
     setBusinessPurpose(e.target.value);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isSubmitting) return;
+    if (isSubmitting || !selectedFile) return;
 
     setIsSubmitting(true);
     setShowSuccessBanner(false);
+    setHasError(false);
 
-    // Simulate network delay
-    setTimeout(() => {
+    try {
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      formData.append('businessPurpose', businessPurpose);
+
+      const response = await fetch('http://127.0.0.1:8000/api/v1/expenses', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+
+      // Handle the JSON response
+      const data = await response.json();
+      if (data.status === 'error') {
+        throw new Error(data.message || 'Validation failed');
+      }
+
       setSelectedFile(null);
       setBusinessPurpose('');
       setIsSubmitting(false);
@@ -34,7 +53,11 @@ const EmployeePortal: React.FC = () => {
       
       // Hide banner after 3 seconds
       setTimeout(() => setShowSuccessBanner(false), 3000);
-    }, 1500);
+    } catch (error) {
+      console.error('Error submitting expense:', error);
+      setHasError(true);
+      setIsSubmitting(false);
+    }
   };
 
   const isSubmitDisabled = !selectedFile || !businessPurpose.trim() || isSubmitting || hasError;
@@ -75,7 +98,7 @@ const EmployeePortal: React.FC = () => {
               <div className="space-y-1 text-center">
                 {selectedFile ? (
                   <div className="text-sm text-gray-900 font-medium break-all">
-                    {selectedFile}
+                    {selectedFile.name}
                   </div>
                 ) : (
                   <>
