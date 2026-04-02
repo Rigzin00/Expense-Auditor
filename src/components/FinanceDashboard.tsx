@@ -1,6 +1,46 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+
+interface Expense {
+  id: string;
+  employeeName: string;
+  date: string;
+  amount: number;
+  category: string;
+  riskLevel: string;
+}
 
 const FinanceDashboard: React.FC = () => {
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+
+  useEffect(() => {
+    const fetchExpenses = async () => {
+      try {
+        const response = await fetch('http://127.0.0.1:8000/api/v1/expenses');
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        const jsonData = await response.json();
+        setExpenses(jsonData.data);
+      } catch (error) {
+        console.error('Error fetching expenses:', error);
+      }
+    };
+
+    fetchExpenses();
+  }, []);
+
+  const getRiskLevelStyles = (level: string) => {
+    switch (level?.toLowerCase()) {
+      case 'rejected':
+        return 'bg-red-100 text-red-800';
+      case 'approved':
+        return 'bg-green-100 text-green-800';
+      case 'flagged':
+      default:
+        return 'bg-yellow-100 text-yellow-800';
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
       {/* Top Navigation Bar */}
@@ -50,44 +90,19 @@ const FinanceDashboard: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {/* Row 1: Rejected */}
-                <tr>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">John Doe</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Oct 24, 2026</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">$450.00</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Lodging</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
-                      Rejected
-                    </span>
-                  </td>
-                </tr>
-
-                {/* Row 2: Flagged */}
-                <tr>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Jane Smith</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Oct 25, 2026</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">$120.50</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Meals</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                      Flagged
-                    </span>
-                  </td>
-                </tr>
-
-                {/* Row 3: Approved */}
-                <tr>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Alice Johnson</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Oct 26, 2026</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">$45.00</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Transport</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                      Approved
-                    </span>
-                  </td>
-                </tr>
+                {expenses.map((expense) => (
+                  <tr key={expense.id}>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{expense.employeeName}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{expense.date}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${Number(expense.amount).toFixed(2)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{expense.category}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getRiskLevelStyles(expense.riskLevel)}`}>
+                        {expense.riskLevel || 'Flagged'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
