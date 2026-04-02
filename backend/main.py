@@ -10,7 +10,7 @@ from database import engine, SessionLocal, Base
 import models
 import schemas
 from services.ocr_service import process_receipt_image
-from services.ai_auditor import evaluate_expense
+from services.ai_auditor import evaluate_expense, ingest_policy_pdf
 
 # Create all database tables on startup
 models.Base.metadata.create_all(bind=engine)
@@ -20,6 +20,11 @@ app = FastAPI(
     description="Backend API for the React frontend.",
     version="1.0.0"
 )
+
+@app.on_event("startup")
+async def startup_event():
+    print("Initializing AI components...")
+    ingest_policy_pdf()
 
 # Configure CORS
 app.add_middleware(
