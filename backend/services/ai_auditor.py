@@ -1,21 +1,20 @@
 import logging
 import os
-# Disable noisy ChromaDB telemetry
-os.environ["CHROMA_TELEMETRY"] = "false"
-os.environ["ANONYMIZED_TELEMETRY"] = "false" 
-os.environ["POSTHOG_DISABLED"] = "1"
-
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
 from langchain_community.vectorstores import Chroma
-from langchain_core.prompts import ChatPromptTemplate # Better for Chat models
+
+# Disable noisy ChromaDB telemetry
+os.environ["CHROMA_TELEMETRY"] = "false"
+os.environ["ANONYMIZED_TELEMETRY"] = "false" 
+os.environ["POSTHOG_DISABLED"] = "1"
 
 logger = logging.getLogger(__name__)
 
-# Fetch API Key once at the top
+# Load environment variables from .env file
 load_dotenv()
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
@@ -24,16 +23,24 @@ class AuditResult(BaseModel):
     ai_reasoning: str = Field(description="A 1-sentence explanation citing the specific rule")
 
 def ingest_policy_pdf():
+    """Reads policy.pdf and prepares the vector database."""
+    if not GOOGLE_API_KEY:
+        print("ERROR: GOOGLE_API_KEY is not set. Check your .env file.")
+        return None
+
     try:
+        if not os.path.exists("policy.pdf"):
+            print("ERROR: policy.pdf not found in backend directory.")
+            return None
+
         loader = PyPDFLoader("policy.pdf")
         docs = loader.load()
         
-        text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
         splits = text_splitter.split_documents(docs)
         
-        # FIX: Pass the API Key explicitly
         embeddings = GoogleGenerativeAIEmbeddings(
-            model="models/gemini-embedding-001",
+            model="models/gemini-embedding-001", # Stable embedding model
             google_api_key=GOOGLE_API_KEY
         )
 
@@ -42,57 +49,63 @@ def ingest_policy_pdf():
             embedding=embeddings,
             persist_directory="./chroma_db" 
         )
-        logger.info("Successfully ingested policy PDF into ChromaDB.")
-        print("Successfully ingested policy PDF into ChromaDB.")
+        print("✅ Successfully ingested policy PDF into ChromaDB.")
         return vectorstore
     except Exception as e:
-        logger.error("Failed to ingest policy PDF: %s", e)
-        print(f"Failed to ingest policy PDF: {e}")
+        print(f"❌ Failed to ingest policy PDF: {e}")
         return None
 
 async def evaluate_expense(receipt_data: dict, business_purpose: str) -> dict:
+    """Uses RAG to evaluate an expense against the policy."""
     try:
-        # FIX: Pass the API Key explicitly
+        if not GOOGLE_API_KEY:
+            raise ValueError("API Key is missing")
+
         embeddings = GoogleGenerativeAIEmbeddings(
-            model="models/gemini-embedding-001", 
-            google_api_key=GOOGLE_API_KEY
+            model="models/gemini-embedding-001",
         )
+        
+        # Load the existing database
         vectorstore = Chroma(
             persist_directory="./chroma_db", 
             embedding_function=embeddings
         )
         
-        query = f"Category: {receipt_data.get('category', 'General')} Purpose: {business_purpose}"
-        retrieved_docs = vectorstore.similarity_search(query, k=3)
+        # Search for rules related to the category or purpose
+        query = f"Category: {receipt_data.get('category', 'General')} Business Purpose: {business_purpose}"
+        retrieved_docs = vectorstore.similarity_search(query, k=4)
         policy_rules = "\n\n".join([doc.page_content for doc in retrieved_docs])
         
-        # FIX: Changed gemini-2.5-flash to 1.5-flash (stable)
         llm = ChatGoogleGenerativeAI(
-            model="gemini-1.5-flash", 
-            temperature=0,
+            model="gemini-2.5-flash",
             google_api_key=GOOGLE_API_KEY
         )
+        
         structured_llm = llm.with_structured_output(AuditResult)
         
-        # Using ChatPromptTemplate for better performance
-        prompt = f"""
-        You are a corporate financial auditor. Evaluate the following expense against the provided policy rules.
+        final_prompt = f"""
+        You are a corporate financial auditor. Analyze the following expense against the company policy rules provided.
         
-        Policy Rules:
+        [POLICY RULES EXTRACTED FROM PDF]
         {policy_rules}
         
-        Receipt Data:
-        {receipt_data}
+        [RECEIPT DATA]
+        Merchant: {receipt_data.get('merchant', 'Unknown')}
+        Amount: {receipt_data.get('total', 'Unknown')}
+        Date: {receipt_data.get('date', 'Unknown')}
         
-        Business Purpose:
-        {business_purpose}
+        [USER JUSTIFICATION]
+        Business Purpose: {business_purpose}
         
-        Determine if the expense complies with the policy.
-        Status must be 'Approved', 'Flagged', or 'Rejected'.
-        Reasoning must be a 1-sentence explanation citing the specific rule.
+        [INSTRUCTIONS]
+        1. Compare the Justification and Receipt Data against the Policy Rules.
+        2. If the expense violates a rule (e.g., alcohol, personal gifts, missing receipts), status is 'Rejected'.
+        3. If it is unclear or requires higher approval, status is 'Flagged'.
+        4. If it complies fully, status is 'Approved'.
+        5. Provide a 1-sentence reasoning citing the specific policy rule.
         """
         
-        result: AuditResult = structured_llm.invoke(prompt)
+        result = structured_llm.invoke(final_prompt)
         
         return {
             "status": result.status,
@@ -100,7 +113,7 @@ async def evaluate_expense(receipt_data: dict, business_purpose: str) -> dict:
         }
         
     except Exception as e:
-        logger.warning("AI Policy evaluation failed: %s. Falling back to mock decision.", e)
+        logger.warning("AI Policy evaluation failed: %s", e)
         return {
             "status": "Flagged",
             "ai_reasoning": "AI Audit unavailable, manual auditor review required."

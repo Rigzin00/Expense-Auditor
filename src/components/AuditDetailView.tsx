@@ -23,6 +23,9 @@ const AuditDetailView: React.FC = () => {
   const [expense, setExpense] = useState<ExpenseDetails | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  
+  const [auditorComments, setAuditorComments] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchExpenseDetails = async () => {
@@ -42,6 +45,34 @@ const AuditDetailView: React.FC = () => {
 
     if (id) fetchExpenseDetails();
   }, [id]);
+
+  const handleDecision = async (action: 'APPROVE' | 'REJECT') => {
+    if (!id || isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(`http://127.0.0.1:8000/api/v1/expenses/${id}/decision`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, auditorComments }),
+      });
+      if (!response.ok) throw new Error('Failed to update decision');
+      const result = await response.json();
+      
+      // Update local state with the new risk level from backend
+      if (result.status === 'success' && expense) {
+        setExpense({
+          ...expense,
+          aiAudit: { ...expense.aiAudit, status: result.data.riskLevel }
+        });
+        setAuditorComments('');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error updating decision');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   if (loading) {
     return <div className="p-8 text-center bg-gray-100 min-h-screen">Loading expense details...</div>;
@@ -167,27 +198,40 @@ const AuditDetailView: React.FC = () => {
             </div>
 
             {/* Human-in-the-Loop Override */}
-            <div className="pt-4 border-t border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-800 mb-3">Human-in-the-Loop Override</h3>
-              <div className="mb-4">
-                <label htmlFor="auditorComments" className="sr-only">Auditor Comments</label>
-                <textarea
-                  id="auditorComments"
-                  rows={4}
-                  className="w-full border border-gray-300 rounded-md p-3 text-sm focus:ring-blue-500 focus:border-blue-500 shadow-sm"
-                  placeholder="Enter your override or rejection justification here..."
-                ></textarea>
+            {expense.aiAudit.status === 'Flagged' && (
+              <div className="pt-4 border-t border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-800 mb-3">Human-in-the-Loop Override</h3>
+                <div className="mb-4">
+                  <label htmlFor="auditorComments" className="sr-only">Auditor Comments</label>
+                  <textarea
+                    id="auditorComments"
+                    value={auditorComments}
+                    onChange={(e) => setAuditorComments(e.target.value)}
+                    disabled={isSubmitting}
+                    rows={4}
+                    className="w-full border border-gray-300 rounded-md p-3 text-sm focus:ring-blue-500 focus:border-blue-500 shadow-sm"
+                    placeholder="Enter your override or rejection justification here..."
+                  ></textarea>
+                </div>
+                
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button 
+                    onClick={() => handleDecision('APPROVE')}
+                    disabled={isSubmitting}
+                    className="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-2.5 px-4 rounded-md transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
+                  >
+                    {isSubmitting ? 'Updating...' : 'Approve Override'}
+                  </button>
+                  <button 
+                    onClick={() => handleDecision('REJECT')}
+                    disabled={isSubmitting || !auditorComments.trim()}
+                    className="flex-1 bg-red-600 hover:bg-red-700 text-white font-medium py-2.5 px-4 rounded-md transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+                  >
+                    {isSubmitting ? 'Updating...' : 'Confirm Rejection'}
+                  </button>
+                </div>
               </div>
-              
-              <div className="flex flex-col sm:flex-row gap-3">
-                <button className="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-2.5 px-4 rounded-md transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                  Approve Override
-                </button>
-                <button className="flex-1 bg-red-600 hover:bg-red-700 text-white font-medium py-2.5 px-4 rounded-md transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                  Confirm Rejection
-                </button>
-              </div>
-            </div>
+            )}
           </div>
         </div>
 
