@@ -1,8 +1,23 @@
 *.pyc
 *.db
 __pycache__/
-*.pyc
-*.db
-chroma_db/
 *.bin
+
+# Virtual environment — NEVER push this
+venv/
+.venv/
+env/
+ENV/
+
+# Secrets & environment variables
 *.env
+.env
+.env.*
+
+# Database & vector store
+chroma_db/
+*.db
+*.sqlite
+
+# OS junk
+.DS_Store
