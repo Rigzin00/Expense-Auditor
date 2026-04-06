@@ -40,7 +40,7 @@ def ingest_policy_pdf():
         splits = text_splitter.split_documents(docs)
         
         embeddings = GoogleGenerativeAIEmbeddings(
-            model="models/gemini-embedding-001", # Stable embedding model
+            model="models/gemini-embedding-001",
             google_api_key=GOOGLE_API_KEY
         )
 
@@ -49,10 +49,10 @@ def ingest_policy_pdf():
             embedding=embeddings,
             persist_directory="./chroma_db" 
         )
-        print("✅ Successfully ingested policy PDF into ChromaDB.")
+        print("Successfully ingested policy PDF into ChromaDB.")
         return vectorstore
     except Exception as e:
-        print(f"❌ Failed to ingest policy PDF: {e}")
+        print(f"Failed to ingest policy PDF: {e}")
         return None
 
 async def evaluate_expense(receipt_data: dict, business_purpose: str) -> dict:
@@ -81,8 +81,6 @@ async def evaluate_expense(receipt_data: dict, business_purpose: str) -> dict:
             google_api_key=GOOGLE_API_KEY
         )
         
-        structured_llm = llm.with_structured_output(AuditResult)
-        
         final_prompt = f"""
         You are a corporate financial auditor. Analyze the following expense against the company policy rules provided.
         
@@ -90,9 +88,11 @@ async def evaluate_expense(receipt_data: dict, business_purpose: str) -> dict:
         {policy_rules}
         
         [RECEIPT DATA]
-        Merchant: {receipt_data.get('merchant', 'Unknown')}
-        Amount: {receipt_data.get('total', 'Unknown')}
+        Merchant: {receipt_data.get('merchant_name', 'Unknown')}
+        Amount: {receipt_data.get('total_amount', 'Unknown')}
+        Currency: {receipt_data.get('currency', 'USD')}
         Date: {receipt_data.get('date', 'Unknown')}
+        Category: {receipt_data.get('category', 'General')}
         
         [USER JUSTIFICATION]
         Business Purpose: {business_purpose}
@@ -103,18 +103,30 @@ async def evaluate_expense(receipt_data: dict, business_purpose: str) -> dict:
         3. If it is unclear or requires higher approval, status is 'Flagged'.
         4. If it complies fully, status is 'Approved'.
         5. Provide a 1-sentence reasoning citing the specific policy rule.
+        6. Return ONLY a raw JSON object with no markdown formatting. The JSON must have exactly these keys: {{"status": "Approved/Flagged/Rejected", "ai_reasoning": "Your 1-sentence explanation"}}
         """
         
-        result = structured_llm.invoke(final_prompt)
+        response = llm.invoke(final_prompt)
+        
+        import json
+        response_text = response.content.strip()
+        if response_text.startswith("```json"):
+            response_text = response_text[7:]
+        if response_text.endswith("```"):
+            response_text = response_text[:-3]
+            
+        result = json.loads(response_text.strip())
         
         return {
-            "status": result.status,
-            "ai_reasoning": result.ai_reasoning
+            "status": result.get("status", "Flagged"),
+            "ai_reasoning": result.get("ai_reasoning", "Audit complete."),
+            "policy_snippet": policy_rules
         }
         
     except Exception as e:
         logger.warning("AI Policy evaluation failed: %s", e)
         return {
             "status": "Flagged",
-            "ai_reasoning": "AI Audit unavailable, manual auditor review required."
+            "ai_reasoning": "AI Audit unavailable, manual auditor review required.",
+            "policy_snippet": ""   # FIX Gap 4: always include policy_snippet key
         }
