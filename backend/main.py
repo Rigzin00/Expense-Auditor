@@ -5,6 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import Optional
 from sqlalchemy.orm import Session
+from sqlalchemy import inspect, text
 import uuid
 import os
 import shutil
@@ -19,8 +20,38 @@ from services.ai_auditor import evaluate_expense, ingest_policy_pdf
 UPLOADS_DIR = "./uploads"
 os.makedirs(UPLOADS_DIR, exist_ok=True)
 
+
+def ensure_expenses_schema_compatibility():
+    """Add missing nullable columns for existing local SQLite databases."""
+    inspector = inspect(engine)
+    if "expenses" not in inspector.get_table_names():
+        return
+
+    existing_columns = {col["name"] for col in inspector.get_columns("expenses")}
+    compatibility_columns = {
+        "merchant_name": "VARCHAR",
+        "currency": "VARCHAR",
+        "policy_snippet": "VARCHAR",
+    }
+
+    missing_columns = {
+        name: column_type
+        for name, column_type in compatibility_columns.items()
+        if name not in existing_columns
+    }
+
+    if not missing_columns:
+        return
+
+    with engine.begin() as conn:
+        for name, column_type in missing_columns.items():
+            conn.execute(text(f"ALTER TABLE expenses ADD COLUMN {name} {column_type}"))
+
+    print(f"Applied schema compatibility updates: added {', '.join(missing_columns.keys())}")
+
 # Create all database tables on startup
 models.Base.metadata.create_all(bind=engine)
+ensure_expenses_schema_compatibility()
 
 app = FastAPI(
     title="Policy-First Expense Auditor API",
