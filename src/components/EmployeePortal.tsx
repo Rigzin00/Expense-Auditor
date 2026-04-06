@@ -1,217 +1,296 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useNotifications } from '../context/NotificationContext';
 
-const EmployeePortal: React.FC = () => {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [businessPurpose, setBusinessPurpose] = useState<string>('');
+interface ExpenseDetails {
+  id: string;
+  receiptImageUrl: string;
+  extractedData: {
+    merchantName: string;
+    date: string;
+    totalAmount: number;
+    currency: string;
+    category: string;
+  };
+  aiAudit: {
+    status: string;
+    reasoning: string;
+    policySnippet?: string;
+  };
+  businessPurpose: string;
+  employeeName: string;
+}
+
+const StatusIcon = ({ status }: { status: string }) => {
+  switch (status?.toLowerCase()) {
+    case 'approved':
+      return (
+        <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+        </svg>
+      );
+    case 'rejected':
+      return (
+        <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+        </svg>
+      );
+    default:
+      return (
+        <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+        </svg>
+      );
+  }
+};
+
+const AuditDetailView: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const [expense, setExpense] = useState<ExpenseDetails | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const { addNotification } = useNotifications();
+  
+  const [auditorComments, setAuditorComments] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [showSuccessBanner, setShowSuccessBanner] = useState<boolean>(false);
-  const [hasError, setHasError] = useState<boolean>(false);
+  const [imageError, setImageError] = useState<boolean>(false);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      setSelectedFile(e.target.files[0]);
-      setHasError(false); // Clear error on new file
-    }
-  };
+  useEffect(() => {
+    const fetchExpenseDetails = async () => {
+      try {
+        const response = await fetch(`http://127.0.0.1:8000/api/v1/expenses/${id}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch expense details');
+        }
+        const data = await response.json();
+        setExpense(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Unknown error');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const handlePurposeChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setBusinessPurpose(e.target.value);
-  };
+    if (id) fetchExpenseDetails();
+  }, [id]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (isSubmitting || !selectedFile) return;
-
+  const handleDecision = async (action: 'APPROVE' | 'REJECT') => {
+    if (!id || isSubmitting) return;
     setIsSubmitting(true);
-    setShowSuccessBanner(false);
-    setHasError(false);
-
     try {
-      const formData = new FormData();
-      formData.append('file', selectedFile);
-      formData.append('businessPurpose', businessPurpose);
-
-      const response = await fetch('http://127.0.0.1:8000/api/v1/expenses', {
+      const response = await fetch(`http://127.0.0.1:8000/api/v1/expenses/${id}/decision`, {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, auditorComments }),
       });
-
-      if (!response.ok) {
-        throw new Error('Upload failed');
-      }
-
-      // Handle the JSON response
-      const data = await response.json();
-      if (data.status === 'error') {
-        throw new Error(data.message || 'Validation failed');
-      }
-
-      setSelectedFile(null);
-      setBusinessPurpose('');
-      setIsSubmitting(false);
-      setShowSuccessBanner(true);
+      if (!response.ok) throw new Error('Failed to update decision');
+      const result = await response.json();
       
-      // Hide banner after 3 seconds
-      setTimeout(() => setShowSuccessBanner(false), 3000);
-    } catch (error) {
-      console.error('Error submitting expense:', error);
-      setHasError(true);
+      if (result.status === 'success' && expense) {
+        setExpense({
+          ...expense,
+          aiAudit: { ...expense.aiAudit, status: result.data.riskLevel }
+        });
+        setAuditorComments('');
+        const type = action === 'APPROVE' ? 'success' : 'error';
+        const title = action === 'APPROVE' ? 'Decision Approved' : 'Decision Rejected';
+        addNotification(type, title, `The auditor has officially ${action === 'APPROVE' ? 'approved' : 'rejected'} the claim for ${expense.extractedData.merchantName}.`);
+        navigate('/finance');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error updating decision');
+    } finally {
       setIsSubmitting(false);
     }
   };
 
-  const isSubmitDisabled = !selectedFile || !businessPurpose.trim() || isSubmitting || hasError;
+  if (loading) {
+    return (
+      <div className="p-8 text-center bg-gray-100 min-h-screen flex items-center justify-center">
+        <div className="text-gray-500">Loading expense details...</div>
+      </div>
+    );
+  }
+
+  if (error || !expense) {
+    return <div className="p-8 text-center text-red-600 bg-gray-100 min-h-screen">Error: {error || 'Expense not found'}</div>;
+  }
+
+  const getStatusStyles = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'rejected':
+        return { banner: 'bg-red-50 border-red-400', title: 'text-red-800', text: 'text-red-700' };
+      case 'approved':
+        return { banner: 'bg-green-50 border-green-400', title: 'text-green-800', text: 'text-green-700' };
+      case 'flagged':
+      default:
+        return { banner: 'bg-yellow-50 border-yellow-400', title: 'text-yellow-800', text: 'text-yellow-700' };
+    }
+  };
+
+  const statusStyles = getStatusStyles(expense.aiAudit.status);
+  const currentStatus = expense.aiAudit.status?.toLowerCase();
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col items-center py-10 px-4">
-      <div className="w-full max-w-md space-y-6">
+    <div className="min-h-screen bg-gray-100 p-4 sm:p-6 lg:p-8">
+      {/* Top Bar with Back Button */}
+      <div className="max-w-7xl mx-auto mb-6">
+        <button 
+          onClick={() => navigate('/finance')}
+          className="flex items-center text-gray-600 hover:text-gray-900 font-medium transition-colors focus:outline-none"
+        >
+          <span className="mr-2">←</span> Back to Dashboard
+        </button>
+      </div>
+
+      {/* Two-Column Grid */}
+      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6">
         
-        {/* Success Banner */}
-        {showSuccessBanner && (
-          <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-xl shadow-sm" role="alert">
-            <div className="flex items-center">
-              <svg className="w-5 h-5 mr-2 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-              <span className="font-medium text-sm">Receipt securely sent to AI Auditor</span>
-            </div>
-          </div>
-        )}
-
-        {/* Upload Card */}
+        {/* Left Column: Receipt & Extraction */}
         <div className="bg-white rounded-xl shadow-md p-6 sm:p-8">
-          <h1 className="text-2xl font-bold text-gray-800 text-center mb-6">
-            Submit New Expense
-          </h1>
-          
-          <form onSubmit={handleSubmit} className="space-y-6">
-          {/* File Dropzone */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Receipt
-            </label>
-            <div className={`mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed rounded-md relative cursor-pointer transition-colors ${
-              hasError 
-                ? 'border-red-500 hover:border-red-600 bg-red-50' 
-                : 'border-gray-300 hover:border-blue-500'
-            }`}>
-              <div className="space-y-1 text-center">
-                {selectedFile ? (
-                  <div className="text-sm text-gray-900 font-medium break-all">
-                    {selectedFile.name}
-                  </div>
-                ) : (
-                  <>
-                    <svg
-                      className="mx-auto h-12 w-12 text-gray-400"
-                      stroke="currentColor"
-                      fill="none"
-                      viewBox="0 0 48 48"
-                      aria-hidden="true"
-                    >
-                      <path
-                        d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                        strokeWidth={2}
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                    <div className="flex text-sm text-gray-600 justify-center mt-2">
-                      <span className="relative font-medium text-blue-600">
-                        Upload a file
-                      </span>
-                      <p className="pl-1">or drag and drop</p>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1">PNG, JPG, PDF up to 10MB</p>
-                  </>
-                )}
-              </div>
-              <input
-                type="file"
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                onChange={handleFileChange}
-                accept=".png,.jpg,.jpeg,.pdf"
-              />
-            </div>
-          </div>
-
-          {/* Business Purpose textarea */}
-          <div>
-            <label htmlFor="businessPurpose" className="block text-sm font-medium text-gray-700 mb-2">
-              Business Purpose
-            </label>
-            <textarea
-              id="businessPurpose"
-              rows={3}
-              value={businessPurpose}
-              onChange={handlePurposeChange}
-              className="shadow-sm focus:ring-blue-500 focus:border-blue-500 mt-1 block w-full sm:text-sm border border-gray-300 rounded-md p-3"
-              placeholder="What was the purpose of this expense?"
-            />
-          </div>
-
-          {hasError && (
-            <div className="text-sm font-semibold text-red-600 mt-2">
-              Validation Failed: The date on the receipt does not match the claimed expense date. Please review.
-            </div>
-          )}
-
-          {/* Submit Button */}
-          <button
-            type="submit"
-            disabled={isSubmitDisabled}
-            className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white transition-colors ${
-              isSubmitDisabled
-                ? 'bg-blue-300 cursor-not-allowed'
-                : 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
-            }`}
-          >
-            {isSubmitting ? 'Analyzing Policy...' : 'Submit Expense'}
-          </button>
-
-          {/* Toggle Mock Error Link */}
-          <div className="text-center mt-4">
-            <button
-              type="button"
-              onClick={() => setHasError(!hasError)}
-              className="text-xs text-gray-400 hover:text-gray-600 underline focus:outline-none"
-            >
-              Toggle Mock Error
-            </button>
-          </div>
-        </form>
-        </div>
-
-        {/* Recent Claims Section */}
-        <div className="bg-white rounded-xl shadow-md p-6 sm:p-8">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">
-            Recent Claims
+          <h2 className="text-xl font-bold text-gray-800 border-b border-gray-200 pb-4 mb-4">
+            Receipt & Extraction
           </h2>
-          <ul className="space-y-3">
-            <li className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-200">
-              <div className="flex flex-col">
-                <span className="font-medium text-gray-800">Uber to Client Meeting</span>
-                <span className="text-sm text-gray-500">$45.00</span>
-              </div>
-              <span className="px-2.5 py-1 text-xs font-semibold text-green-700 bg-green-100 rounded-full">
-                Approved
-              </span>
-            </li>
-            
-            <li className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-200">
-              <div className="flex flex-col">
-                <span className="font-medium text-gray-800">Team Lunch</span>
-                <span className="text-sm text-gray-500">$120.00</span>
-              </div>
-              <span className="px-2.5 py-1 text-xs font-semibold text-yellow-700 bg-yellow-100 rounded-full">
-                Pending Audit
-              </span>
-            </li>
-          </ul>
+          <div className="space-y-6">
+            {/* Receipt Image */}
+            <div className="w-full h-64 bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden">
+              {expense.receiptImageUrl && !imageError ? (
+                <img
+                  src={expense.receiptImageUrl}
+                  alt="Receipt"
+                  className="object-contain h-full w-full rounded-lg"
+                  onError={() => setImageError(true)}
+                />
+              ) : (
+                <div className="text-center text-gray-400 px-4">
+                  <svg className="mx-auto h-12 w-12 mb-2 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <p className="text-sm font-medium">Receipt image unavailable</p>
+                </div>
+              )}
+            </div>
+
+            {/* Extracted Data List */}
+            <div>
+              <h3 className="text-lg font-semibold text-gray-700 mb-3">Extracted Data</h3>
+              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-4">
+                <div className="bg-gray-50 p-3 rounded-md border border-gray-100">
+                  <dt className="text-sm font-medium text-gray-500">Merchant Name</dt>
+                  <dd className="mt-1 text-base font-semibold text-gray-900">{expense.extractedData.merchantName}</dd>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-md border border-gray-100">
+                  <dt className="text-sm font-medium text-gray-500">Date</dt>
+                  <dd className="mt-1 text-base font-semibold text-gray-900">{expense.extractedData.date}</dd>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-md border border-gray-100">
+                  <dt className="text-sm font-medium text-gray-500">Total Amount</dt>
+                  <dd className="mt-1 text-base font-semibold text-gray-900">
+                    {expense.extractedData.currency} {Number(expense.extractedData.totalAmount).toFixed(2)}
+                  </dd>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-md border border-gray-100">
+                  <dt className="text-sm font-medium text-gray-500">Category</dt>
+                  <dd className="mt-1 text-base font-semibold text-gray-900">{expense.extractedData.category}</dd>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-md border border-gray-100 sm:col-span-2">
+                  <dt className="text-sm font-medium text-gray-500">Business Purpose</dt>
+                  <dd className="mt-1 text-base font-semibold text-gray-900">{expense.businessPurpose || 'N/A'}</dd>
+                </div>
+              </dl>
+            </div>
+          </div>
         </div>
+
+        {/* Right Column: AI Policy Audit */}
+        <div className="bg-white rounded-xl shadow-md p-6 sm:p-8">
+          <h2 className="text-xl font-bold text-gray-800 border-b border-gray-200 pb-4 mb-4">
+            AI Policy Audit
+          </h2>
+          <div className="space-y-6">
+            {/* Status Banner */}
+            <div className={`${statusStyles.banner} border-l-4 p-4 rounded-r-md`}>
+              <div className="flex items-start">
+                <div className="flex-shrink-0">
+                  <StatusIcon status={expense.aiAudit.status} />
+                </div>
+                <div className="ml-3">
+                  <h3 className={`text-sm font-bold ${statusStyles.title}`}>Status: {expense.aiAudit.status}</h3>
+                  <p className={`mt-1 text-sm ${statusStyles.text}`}>
+                    {currentStatus === 'flagged'
+                      ? 'This expense requires manual review by an auditor.'
+                      : `This expense was ${expense.aiAudit.status.toLowerCase()} by the AI auditor.`}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* AI Reasoning */}
+            <div>
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">Auditor Insights</h3>
+              <div className="bg-gray-50 border border-gray-200 rounded-md p-4 text-gray-700 text-sm leading-relaxed">
+                <span className="font-semibold text-gray-900">{expense.aiAudit.status}:</span> {expense.aiAudit.reasoning}
+              </div>
+            </div>
+
+            {/* Policy Snippet */}
+            {expense.aiAudit.policySnippet && expense.aiAudit.policySnippet.trim() !== "" && (
+              <div>
+                <h3 className="text-lg font-semibold text-gray-800 mb-2">Policy Reference Chunk</h3>
+                <div className="bg-gray-800 text-gray-300 rounded-md p-4 text-xs font-mono whitespace-pre-wrap max-h-48 overflow-y-auto w-full shadow-inner border border-gray-900">
+                  {expense.aiAudit.policySnippet}
+                </div>
+              </div>
+            )}
+
+            {/* Human-in-the-Loop Override — BUG 3 FIX: available for ALL statuses */}
+            <div className="pt-4 border-t border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-800 mb-1">Human-in-the-Loop Override</h3>
+              <p className="text-xs text-gray-500 mb-3">
+                {currentStatus === 'flagged'
+                  ? 'Review the AI decision and choose to approve or reject this claim.'
+                  : 'Override the current decision if you disagree with the AI verdict.'}
+              </p>
+              <div className="mb-4">
+                <label htmlFor="auditorComments" className="block text-sm font-medium text-gray-700 mb-1">
+                  Auditor Comments {currentStatus !== 'flagged' && <span className="text-gray-400">(required to override)</span>}
+                </label>
+                <textarea
+                  id="auditorComments"
+                  value={auditorComments}
+                  onChange={(e) => setAuditorComments(e.target.value)}
+                  disabled={isSubmitting}
+                  rows={3}
+                  className="w-full border border-gray-300 rounded-md p-3 text-sm focus:ring-blue-500 focus:border-blue-500 shadow-sm"
+                  placeholder="Enter your override justification here..."
+                ></textarea>
+              </div>
+              
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button 
+                  onClick={() => handleDecision('APPROVE')}
+                  disabled={isSubmitting || currentStatus === 'approved'}
+                  className="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-2.5 px-4 rounded-md transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting ? 'Updating...' : currentStatus === 'approved' ? '✓ Already Approved' : 'Approve'}
+                </button>
+                <button 
+                  onClick={() => handleDecision('REJECT')}
+                  disabled={isSubmitting || currentStatus === 'rejected' || !auditorComments.trim()}
+                  className="flex-1 bg-red-600 hover:bg-red-700 text-white font-medium py-2.5 px-4 rounded-md transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting ? 'Updating...' : currentStatus === 'rejected' ? '✗ Already Rejected' : 'Reject'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   );
 };
 
-export default EmployeePortal;
+export default AuditDetailView;
