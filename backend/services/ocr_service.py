@@ -10,31 +10,73 @@ async def process_receipt_image(file: UploadFile) -> dict:
     If credentials or the API call fails, it falls back to parsing via filename.
     """
     try:
-        # Import dynamically here to avoid hard-crashes if library isn't installed perfectly yet
-        from google.cloud import vision
-        
         content = await file.read()
         await file.seek(0)
         
-        client = vision.ImageAnnotatorClient()
-        image = vision.Image(content=content)
+        # Convert first page of PDF to Image if it's a PDF
+        if file.filename and file.filename.lower().endswith('.pdf'):
+            try:
+                import fitz  # PyMuPDF
+                pdf_document = fitz.open(stream=content, filetype="pdf")
+                if len(pdf_document) > 0:
+                    first_page = pdf_document.load_page(0)
+                    pix = first_page.get_pixmap(dpi=150)
+                    content = pix.tobytes("jpeg")
+            except Exception as pdf_err:
+                logger.warning(f"Failed to process PDF into image: {pdf_err}")
+                raise Exception("Could not convert PDF to image for OCR.")
+
+        # Native Image parsing using Gemini Multimodal
+        import os
+        import base64
+        import json
+        from dotenv import load_dotenv
+        from langchain_google_genai import ChatGoogleGenerativeAI
+        from langchain_core.messages import HumanMessage
         
-        response = client.text_detection(image=image)
-        if response.error.message:
-            raise Exception(f"Google Cloud Vision API Error: {response.error.message}")
+        load_dotenv()
+
+        llm = ChatGoogleGenerativeAI(
+            model="gemini-2.5-flash",
+            google_api_key=os.getenv("GOOGLE_API_KEY")
+        )
+        
+        image_data = base64.b64encode(content).decode("utf-8")
+        
+        prompt_text = (
+            "Extract the precise receipt details from this image. "
+            "Return ONLY a raw JSON object with no markdown formatting. "
+            "The JSON must have exactly these keys: "
+            '{"merchant_name": "Name of store", "date": "YYYY-MM-DD", '
+            '"total_amount": 12.34, "currency": "USD", "category": "Meals/Transport/General"}. '
+            'Parse the date strictly into standard YYYY-MM-DD format.'
+        )
+        
+        message = HumanMessage(
+            content=[
+                {"type": "text", "text": prompt_text},
+                {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{image_data}"}},
+            ]
+        )
+        
+        response = llm.invoke([message])
+        
+        # Clean the response just in case
+        response_text = response.content.strip()
+        if response_text.startswith("```json"):
+            response_text = response_text[7:]
+        if response_text.endswith("```"):
+            response_text = response_text[:-3]
+        response_text = response_text.strip()
             
-        texts = response.text_annotations
-        if not texts:
-            raise Exception("No text found in image")
-            
-        # In a real environment, you would use regex or LLM parsing on `texts[0].description`.
-        # Here we mock the happy path returning generic structured text.
+        extracted = json.loads(response_text)
+        
         return {
-            "merchant_name": "API Extracted Merchant",
-            "date": "2026-04-01",
-            "total_amount": 99.99,
-            "currency": "USD",
-            "category": "Miscellaneous"
+            "merchant_name": str(extracted.get("merchant_name", "Unknown")),
+            "date": str(extracted.get("date", "Unknown")),
+            "total_amount": float(extracted.get("total_amount", 0.0)),
+            "currency": str(extracted.get("currency", "USD")),
+            "category": str(extracted.get("category", "General"))
         }
         
     except Exception as e:
