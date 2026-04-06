@@ -1,16 +1,23 @@
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException, status, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import Optional
 from sqlalchemy.orm import Session
 import uuid
+import os
+import shutil
 
 from database import engine, SessionLocal, Base
 import models
 import schemas
 from services.ocr_service import process_receipt_image
 from services.ai_auditor import evaluate_expense, ingest_policy_pdf
+
+# Create uploads directory if it doesn't exist
+UPLOADS_DIR = "./uploads"
+os.makedirs(UPLOADS_DIR, exist_ok=True)
 
 # Create all database tables on startup
 models.Base.metadata.create_all(bind=engine)
@@ -20,6 +27,9 @@ app = FastAPI(
     description="Backend API for the React frontend.",
     version="1.0.0"
 )
+
+# Serve uploaded receipt images as static files
+app.mount("/uploads", StaticFiles(directory=UPLOADS_DIR), name="uploads")
 
 @app.on_event("startup")
 async def startup_event():
@@ -49,6 +59,23 @@ def get_db():
 
 
 # ---------------------------------------------------------------------------------
+# In-memory notification store (persists for the lifetime of the server process)
+# ---------------------------------------------------------------------------------
+_notifications: list[dict] = []
+
+def _push_notification(notif_type: str, title: str, message: str):
+    """Push a real notification event into the in-memory store."""
+    _notifications.insert(0, {
+        "id": f"notif_{uuid.uuid4().hex[:8]}",
+        "type": notif_type,
+        "title": title,
+        "message": message,
+        "isRead": False,
+        "createdAt": __import__("datetime").datetime.utcnow().isoformat() + "Z"
+    })
+
+
+# ---------------------------------------------------------------------------------
 # 1. Employee Portal
 # ---------------------------------------------------------------------------------
 
@@ -56,43 +83,89 @@ def get_db():
 async def submit_expense(
     file: UploadFile = File(...),
     businessPurpose: str = Form(...),
+    expenseDate: str = Form(...),
     db: Session = Depends(get_db)
 ):
-    if "fail" in businessPurpose.lower():
+    # Read file content once for OCR
+    file_content = await file.read()
+    await file.seek(0)
+
+    # Extract data from the image dynamically
+    extracted_data = await process_receipt_image(file)
+
+    # 1. Automated Validation check for blurry / unreadable receipts
+    ocr_date = extracted_data.get("date", "Unknown")
+    ocr_merchant = extracted_data.get("merchant_name", "Unknown")
+    ocr_total = extracted_data.get("total_amount", 0.0)
+
+    if ocr_merchant == "Unknown" and ocr_total == 0.0:
         return JSONResponse(
             status_code=400,
             content={
                 "status": "error",
                 "code": "VALIDATION_FAILED",
-                "message": "The date on the receipt does not match the claimed expense date. Please review."
+                "message": "The receipt is blurry or unreadable. Please upload a clearer image."
             }
         )
 
-    # Extract data from the image dynamically
-    extracted_data = await process_receipt_image(file)
+    # 2. Automated Validation check based on Date (Flexible Y-M-D matching)
+    if ocr_date != "Unknown":
+        ocr_parts = set(ocr_date.split("-"))
+        exp_parts = set(expenseDate.split("-"))
+        
+        # Check if the parts are just swapped around (e.g. 06/07 vs 07/06)
+        if ocr_parts != exp_parts:
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "status": "error",
+                    "code": "VALIDATION_FAILED",
+                    "message": f"The date on the receipt ({ocr_date}) does not match the claimed expense date ({expenseDate}). Please review."
+                }
+            )
 
     # Evaluate the policy via LangChain RAG
     ai_eval = await evaluate_expense(extracted_data, businessPurpose)
 
-    # Generate a random string ID
+    # Generate a unique ID for this expense
     expense_id = f"exp_{uuid.uuid4().hex[:8]}"
 
-    # Use the dynamically extracted OCR mapping for the Database object!
+    # --- BUG 2 FIX: Save the uploaded receipt image to disk ---
+    file_extension = os.path.splitext(file.filename or "receipt.jpg")[1] or ".jpg"
+    saved_filename = f"{expense_id}{file_extension}"
+    saved_path = os.path.join(UPLOADS_DIR, saved_filename)
+    with open(saved_path, "wb") as f:
+        f.write(file_content)
+    receipt_url = f"http://127.0.0.1:8000/uploads/{saved_filename}"
+
+    # Store the expense in DB with real merchant_name and currency
     new_expense = models.Expense(
         id=expense_id,
-        employee_name="Temporary User",
+        employee_name="Employee",
+        merchant_name=extracted_data.get("merchant_name", "Unknown"),   # BUG 1 FIX
         expense_date=extracted_data["date"],
         amount=extracted_data["total_amount"],
         category=extracted_data["category"],
+        currency=extracted_data.get("currency", "USD"),
         business_purpose=businessPurpose,
         risk_level=ai_eval.get("status", "Flagged"),
-        ai_reasoning=ai_eval.get("ai_reasoning", f"Flagged based on {extracted_data['merchant_name']} logic. Needs review."),
-        receipt_image_url=f"https://storage.provider.com/receipts/{expense_id}.jpg"
+        ai_reasoning=ai_eval.get("ai_reasoning", f"Flagged based on {extracted_data.get('merchant_name')} logic. Needs review."),
+        receipt_image_url=receipt_url,                                  # BUG 2 FIX
+        policy_snippet=ai_eval.get("policy_snippet", "")
     )
 
     db.add(new_expense)
     db.commit()
     db.refresh(new_expense)
+
+    # Push a real notification for the employee
+    risk = ai_eval.get("status", "Flagged")
+    if risk == "Approved":
+        _push_notification("success", "Expense Approved", f"Your {extracted_data.get('category', 'expense')} claim from {extracted_data.get('merchant_name', 'merchant')} has been automatically approved.")
+    elif risk == "Rejected":
+        _push_notification("error", "Expense Rejected", f"Your claim from {extracted_data.get('merchant_name', 'merchant')} was rejected: {ai_eval.get('ai_reasoning', '')}")
+    else:
+        _push_notification("info", "Expense Under Review", f"Your {extracted_data.get('category', 'expense')} claim from {extracted_data.get('merchant_name', 'merchant')} requires manual review.")
 
     return JSONResponse(
         status_code=202,
@@ -138,16 +211,19 @@ async def get_expense_details(expense_id: str, db: Session = Depends(get_db)):
         "id": expense.id,
         "receiptImageUrl": expense.receipt_image_url,
         "extractedData": {
-            "merchantName": "Uber",
+            "merchantName": expense.merchant_name or "Unknown",   # BUG 1 FIX: real value from DB
             "date": expense.expense_date,
             "totalAmount": expense.amount,
-            "currency": "USD"
+            "currency": expense.currency or "USD",
+            "category": expense.category or "General"
         },
         "aiAudit": {
             "status": expense.risk_level,
-            "reasoning": expense.ai_reasoning
+            "reasoning": expense.ai_reasoning,
+            "policySnippet": expense.policy_snippet
         },
-        "businessPurpose": expense.business_purpose
+        "businessPurpose": expense.business_purpose,
+        "employeeName": expense.employee_name
     }
 
 class DecisionRequest(BaseModel):
@@ -161,6 +237,8 @@ async def make_decision(expense_id: str, decision: DecisionRequest, db: Session 
     if not expense:
         raise HTTPException(status_code=404, detail="Expense not found")
 
+    previous_status = expense.risk_level
+
     if decision.action.upper() == "APPROVE":
         expense.risk_level = "Approved"
     elif decision.action.upper() == "REJECT":
@@ -169,6 +247,14 @@ async def make_decision(expense_id: str, decision: DecisionRequest, db: Session 
     db.commit()
     db.refresh(expense)
 
+    # Push notification for the employee on auditor decision
+    merchant = expense.merchant_name or expense.category or "expense"
+    if decision.action.upper() == "APPROVE":
+        _push_notification("success", "Claim Approved ✓", f"Your '{merchant}' expense claim has been approved by the Finance team. Reimbursement is being processed.")
+    else:
+        comment_suffix = f" Reason: {decision.auditorComments}" if decision.auditorComments else ""
+        _push_notification("error", "Claim Requires Clarification", f"Your '{merchant}' expense was rejected by the Finance team.{comment_suffix}")
+
     return {
         "status": "success",
         "message": "Claim decision recorded successfully.",
@@ -176,28 +262,17 @@ async def make_decision(expense_id: str, decision: DecisionRequest, db: Session 
     }
 
 # ---------------------------------------------------------------------------------
-# 4. Global Navigation & Notifications
+# 4. Notifications
 # ---------------------------------------------------------------------------------
 
 @app.get("/api/v1/notifications")
 async def get_notifications():
-    return {
-        "data": [
-            {
-                "id": "notif_001",
-                "type": "error",
-                "title": "Action Required",
-                "message": "Uber receipt is too blurry. Please re-upload.",
-                "isRead": False,
-                "createdAt": "2026-04-01T10:00:00Z"
-            },
-            {
-                "id": "notif_002",
-                "type": "success",
-                "title": "Success",
-                "message": "Team Lunch expense has been approved.",
-                "isRead": False,
-                "createdAt": "2026-04-01T09:30:00Z"
-            }
-        ]
-    }
+    """Returns real notification events generated by expense submissions and decisions."""
+    return {"data": _notifications}
+
+@app.post("/api/v1/notifications/mark-read")
+async def mark_notifications_read():
+    """Marks all notifications as read."""
+    for n in _notifications:
+        n["isRead"] = True
+    return {"status": "success"}
