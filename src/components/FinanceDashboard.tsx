@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+
 interface Expense {
   id: string;
   employeeName: string;
@@ -24,7 +26,7 @@ const FinanceDashboard: React.FC = () => {
   const fetchExpenses = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://127.0.0.1:8000/api/v1/expenses');
+      const response = await fetch(`${API_URL}/api/v1/expenses`);
       if (!response.ok) throw new Error('Network response was not ok');
       const jsonData = await response.json();
 

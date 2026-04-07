@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useNotifications } from '../context/NotificationContext';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+
 interface ExpenseDetails {
   id: string;
   receiptImageUrl: string;
@@ -66,7 +68,7 @@ const AuditDetailView: React.FC = () => {
   useEffect(() => {
     const fetchExpenseDetails = async () => {
       try {
-        const response = await fetch(`http://127.0.0.1:8000/api/v1/expenses/${id}`);
+        const response = await fetch(`${API_URL}/api/v1/expenses/${id}`);
         if (!response.ok) throw new Error('Failed to fetch expense details');
         const data = await response.json();
         setExpense(data);
@@ -83,7 +85,7 @@ const AuditDetailView: React.FC = () => {
     if (!id || isSubmitting) return;
     setIsSubmitting(true);
     try {
-      const response = await fetch(`http://127.0.0.1:8000/api/v1/expenses/${id}/decision`, {
+      const response = await fetch(`${API_URL}/api/v1/expenses/${id}/decision`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action, auditorComments }),

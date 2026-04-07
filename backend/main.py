@@ -74,6 +74,7 @@ app.add_middleware(
         "http://localhost:5173", # Vite (Default)
         "http://localhost:5174", # Vite (Backup)
         "http://localhost:3000", # Standard React
+        "*",                     # Allows deployed Vercel frontend
     ],
     allow_credentials=True,
     allow_methods=["*"],

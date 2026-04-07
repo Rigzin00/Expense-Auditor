@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNotifications } from '../context/NotificationContext';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+
 interface RecentClaim {
   id: string;
   merchantName: string;
@@ -32,7 +34,7 @@ const EmployeePortal: React.FC = () => {
   const fetchRecentClaims = useCallback(async () => {
     try {
       setClaimsLoading(true);
-      const response = await fetch('http://127.0.0.1:8000/api/v1/expenses');
+      const response = await fetch(`${API_URL}/api/v1/expenses`);
       if (!response.ok) throw new Error('Failed to fetch');
       const jsonData = await response.json();
       const claims: RecentClaim[] = (jsonData.data || [])
@@ -124,7 +126,7 @@ const EmployeePortal: React.FC = () => {
       formData.append('businessPurpose', businessPurpose);
       formData.append('employeeName', employeeName.trim() || 'Employee');
 
-      const response = await fetch('http://127.0.0.1:8000/api/v1/expenses', {
+      const response = await fetch(`${API_URL}/api/v1/expenses`, {
         method: 'POST',
         body: formData,
       });

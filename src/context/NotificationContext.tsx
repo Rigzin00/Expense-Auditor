@@ -1,6 +1,8 @@
 import { createContext, useState, useContext, useCallback } from 'react';
 import type { ReactNode } from 'react';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+
 interface Notification {
   id: string;
   type: 'success' | 'error' | 'info';
@@ -40,7 +42,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
   const markAllAsRead = useCallback(() => {
     setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
     // Also mark as read on the backend
-    fetch('http://127.0.0.1:8000/api/v1/notifications/mark-read', { method: 'POST' }).catch(() => {});
+    fetch(`${API_URL}/api/v1/notifications/mark-read`, { method: 'POST' }).catch(() => {});
   }, []);
 
   /**
@@ -49,7 +51,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
    */
   const syncBackendNotifications = useCallback(async () => {
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/v1/notifications');
+      const res = await fetch(`${API_URL}/api/v1/notifications`);
       if (!res.ok) return;
       const data = await res.json();
       const backendNotifs: Notification[] = (data.data || []).filter((n: Notification) => !seenIds.has(n.id));
