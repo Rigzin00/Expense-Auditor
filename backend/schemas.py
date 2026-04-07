@@ -13,6 +13,7 @@ class ExpenseBase(BaseModel):
     ai_reasoning: Optional[str] = Field(None, alias="aiReasoning")
     receipt_image_url: Optional[str] = Field(None, alias="receiptImageUrl")
     policy_snippet: Optional[str] = Field(None, alias="policySnippet")
+    auditor_comments: Optional[str] = Field(None, alias="auditorComments")
 
 class ExpenseCreate(ExpenseBase):
     pass

@@ -30,7 +30,7 @@ function NotificationDropdown({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpe
 
   return (
     <div className="relative" ref={ref}>
-      <button 
+      <button
         onClick={() => {
           const next = !isOpen;
           setIsOpen(next);
@@ -73,15 +73,13 @@ function NotificationDropdown({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpe
                   className={`px-4 py-3 border-b border-gray-50 ${!notif.isRead ? 'bg-blue-50/40' : 'hover:bg-gray-50'}`}
                 >
                   <div className="flex items-start gap-3">
-                    <span className={`mt-1.5 inline-block h-2.5 w-2.5 flex-shrink-0 rounded-full ${
-                      notif.type === 'success' ? 'bg-green-500' :
-                      notif.type === 'error' ? 'bg-red-500' : 'bg-yellow-400'
-                    }`}></span>
+                    <span className={`mt-1.5 inline-block h-2.5 w-2.5 flex-shrink-0 rounded-full ${notif.type === 'success' ? 'bg-green-500' :
+                        notif.type === 'error' ? 'bg-red-500' : 'bg-yellow-400'
+                      }`}></span>
                     <div>
-                      <p className={`text-sm font-semibold ${
-                        notif.type === 'success' ? 'text-green-800' :
-                        notif.type === 'error' ? 'text-red-800' : 'text-yellow-800'
-                      }`}>{notif.title}</p>
+                      <p className={`text-sm font-semibold ${notif.type === 'success' ? 'text-green-800' :
+                          notif.type === 'error' ? 'text-red-800' : 'text-yellow-800'
+                        }`}>{notif.title}</p>
                       <p className="text-sm text-gray-600 mt-0.5 leading-snug">{notif.message}</p>
                     </div>
                   </div>
@@ -108,23 +106,23 @@ function App() {
               <div className="flex items-center justify-between h-14">
                 <div className="flex items-center space-x-8">
                   <span className="font-bold text-xl tracking-tight">Policy-First Auditor</span>
-                  
+
                   <div className="hidden sm:flex space-x-4">
-                    <Link 
-                      to="/employee" 
+                    <Link
+                      to="/employee"
                       className="px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition"
                     >
                       Employee Portal
                     </Link>
-                    <Link 
-                      to="/finance" 
+                    <Link
+                      to="/finance"
                       className="px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition"
                     >
                       Finance Dashboard
                     </Link>
                   </div>
                 </div>
-                
+
                 <NotificationDropdown isOpen={isNotificationsOpen} setIsOpen={setIsNotificationsOpen} />
               </div>
             </div>

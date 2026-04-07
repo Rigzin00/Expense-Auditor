@@ -1,16 +1,17 @@
 import logging
 import os
+
+# Disable noisy ChromaDB telemetry MUST happen before imports
+os.environ["CHROMA_TELEMETRY"] = "false"
+os.environ["ANONYMIZED_TELEMETRY"] = "false" 
+os.environ["POSTHOG_DISABLED"] = "1"
+
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
 from langchain_community.vectorstores import Chroma
-
-# Disable noisy ChromaDB telemetry
-os.environ["CHROMA_TELEMETRY"] = "false"
-os.environ["ANONYMIZED_TELEMETRY"] = "false" 
-os.environ["POSTHOG_DISABLED"] = "1"
 
 logger = logging.getLogger(__name__)
 
@@ -71,10 +72,21 @@ async def evaluate_expense(receipt_data: dict, business_purpose: str) -> dict:
             embedding_function=embeddings
         )
         
-        # Search for rules related to the category or purpose
-        query = f"Category: {receipt_data.get('category', 'General')} Business Purpose: {business_purpose}"
-        retrieved_docs = vectorstore.similarity_search(query, k=4)
-        policy_rules = "\n\n".join([doc.page_content for doc in retrieved_docs])
+        # Multi-query retrieval for stricter context checks
+        queries = [
+            f"Category limits and rules for: {receipt_data.get('category', 'General')}",
+            f"Prohibited expenses, alcohol, gifts, and weekend spending rules",
+            f"General receipt amount limits and purpose: {business_purpose}",
+            f"Rules for merchant: {receipt_data.get('merchant_name', 'Unknown')}"
+        ]
+        
+        retrieved_docs = []
+        for q in queries:
+            retrieved_docs.extend(vectorstore.similarity_search(q, k=2))
+            
+        # Deduplicate to avoid context window bloating
+        unique_contents = list(set([doc.page_content for doc in retrieved_docs]))
+        policy_rules = "\n\n".join(unique_contents)
         
         llm = ChatGoogleGenerativeAI(
             model="gemini-2.5-flash",
@@ -99,23 +111,29 @@ async def evaluate_expense(receipt_data: dict, business_purpose: str) -> dict:
         
         [INSTRUCTIONS]
         1. Compare the Justification and Receipt Data against the Policy Rules.
-        2. If the expense violates a rule (e.g., alcohol, personal gifts, missing receipts), status is 'Rejected'.
-        3. If it is unclear or requires higher approval, status is 'Flagged'.
-        4. If it complies fully, status is 'Approved'.
-        5. Provide a 1-sentence reasoning citing the specific policy rule.
-        6. Return ONLY a raw JSON object with no markdown formatting. The JSON must have exactly these keys: {{"status": "Approved/Flagged/Rejected", "ai_reasoning": "Your 1-sentence explanation"}}
+        2. Validate constraints thoroughly: check regional/category amount limits, specific prohibitions (like alcohol or personal gifts), team building consistencies, and day-of-week logic (e.g. weekend spending).
+        3. If the expense violates ANY rule (e.g. amounts exceed limits, prohibited items), status must be 'Rejected'.
+        4. If it is borderline, lacks sufficient context, or explicitly requires manager approval, status is 'Flagged'.
+        5. If it complies fully with all limits and rules, status is 'Approved'.
+        6. Provide a concise 1-sentence reasoning citing the specific rule checked (e.g. "Rejected: Expense of $100 exceeds the daily meal limit of $50 per section 3.A.").
+        7. Return ONLY a raw JSON object string with no markdown formatting or markdown ticks. The JSON must have exactly these keys: {{"status": "Approved"|"Flagged"|"Rejected", "ai_reasoning": "..."}}
         """
         
         response = llm.invoke(final_prompt)
         
         import json
+        import re
         response_text = response.content.strip()
-        if response_text.startswith("```json"):
-            response_text = response_text[7:]
-        if response_text.endswith("```"):
-            response_text = response_text[:-3]
+        # Clean up markdown code blocks if the model still adds them despite instructions
+        response_text = re.sub(r'^```(?:json)?|```$', '', response_text, flags=re.MULTILINE).strip()
             
-        result = json.loads(response_text.strip())
+        try:
+            result = json.loads(response_text)
+        except json.JSONDecodeError:
+            result = {
+                "status": "Flagged",
+                "ai_reasoning": "Failed to parse AI output reliably. Manual review strongly recommended."
+            }
         
         return {
             "status": result.get("status", "Flagged"),

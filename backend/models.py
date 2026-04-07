@@ -16,3 +16,4 @@ class Expense(Base):
     ai_reasoning = Column(String)
     receipt_image_url = Column(String)
     policy_snippet = Column(String)
+    auditor_comments = Column(String, nullable=True)

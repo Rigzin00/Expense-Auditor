@@ -8,7 +8,6 @@ from sqlalchemy.orm import Session
 from sqlalchemy import inspect, text
 import uuid
 import os
-import shutil
 
 from database import engine, SessionLocal, Base
 import models
@@ -32,6 +31,7 @@ def ensure_expenses_schema_compatibility():
         "merchant_name": "VARCHAR",
         "currency": "VARCHAR",
         "policy_snippet": "VARCHAR",
+        "auditor_comments": "VARCHAR",
     }
 
     missing_columns = {
@@ -115,6 +115,7 @@ async def submit_expense(
     file: UploadFile = File(...),
     businessPurpose: str = Form(...),
     expenseDate: str = Form(...),
+    employeeName: str = Form(...),
     db: Session = Depends(get_db)
 ):
     # Read file content once for OCR
@@ -172,7 +173,7 @@ async def submit_expense(
     # Store the expense in DB with real merchant_name and currency
     new_expense = models.Expense(
         id=expense_id,
-        employee_name="Employee",
+        employee_name=employeeName,
         merchant_name=extracted_data.get("merchant_name", "Unknown"),   # BUG 1 FIX
         expense_date=extracted_data["date"],
         amount=extracted_data["total_amount"],
@@ -253,6 +254,7 @@ async def get_expense_details(expense_id: str, db: Session = Depends(get_db)):
             "reasoning": expense.ai_reasoning,
             "policySnippet": expense.policy_snippet
         },
+        "auditorComments": expense.auditor_comments,
         "businessPurpose": expense.business_purpose,
         "employeeName": expense.employee_name
     }
@@ -275,6 +277,8 @@ async def make_decision(expense_id: str, decision: DecisionRequest, db: Session 
     elif decision.action.upper() == "REJECT":
         expense.risk_level = "Rejected"
 
+    expense.auditor_comments = decision.auditorComments
+    
     db.commit()
     db.refresh(expense)
 
