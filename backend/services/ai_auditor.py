@@ -11,13 +11,17 @@ from pydantic import BaseModel, Field
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
-from langchain_community.vectorstores import Chroma
+from langchain_chroma import Chroma
+import time
+from fastapi import HTTPException
 
 logger = logging.getLogger(__name__)
 
 # Load environment variables from .env file
 load_dotenv()
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+
+_cooldown_until = 0
 
 class AuditResult(BaseModel):
     status: str = Field(description="Must be 'Approved', 'Flagged', or 'Rejected'")
@@ -58,6 +62,15 @@ def ingest_policy_pdf():
 
 async def evaluate_expense(receipt_data: dict, business_purpose: str) -> dict:
     """Uses RAG to evaluate an expense against the policy."""
+    global _cooldown_until
+    current_time = time.time()
+    if current_time < _cooldown_until:
+        remaining = int(_cooldown_until - current_time)
+        raise HTTPException(
+            status_code=429, 
+            detail=f"API Quota Exceeded. Please retry in {remaining} seconds."
+        )
+
     try:
         if not GOOGLE_API_KEY:
             raise ValueError("API Key is missing")
@@ -142,7 +155,19 @@ async def evaluate_expense(receipt_data: dict, business_purpose: str) -> dict:
         }
         
     except Exception as e:
-        logger.warning("AI Policy evaluation failed: %s", e)
+        error_str = str(e)
+        logger.warning("AI Policy evaluation failed: %s", error_str)
+        
+        if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
+            import re
+            match = re.search(r"retryDelay': '(\d+)s'", error_str)
+            delay = int(match.group(1)) if match else 60
+            _cooldown_until = time.time() + delay
+            raise HTTPException(
+                status_code=429, 
+                detail=f"API Quota Exceeded. Please retry in {delay} seconds."
+            )
+            
         return {
             "status": "Flagged",
             "ai_reasoning": "AI Audit unavailable, manual auditor review required.",

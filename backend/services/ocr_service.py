@@ -1,7 +1,11 @@
 import logging
-from fastapi import UploadFile
+from fastapi import UploadFile, HTTPException
+import time
+import json
 
 logger = logging.getLogger(__name__)
+
+_cooldown_until = 0
 
 async def process_receipt_image(file: UploadFile) -> dict:
     """
@@ -9,6 +13,15 @@ async def process_receipt_image(file: UploadFile) -> dict:
     Extracts 'merchant_name', 'date', 'total_amount', and 'currency'.
     If credentials or the API call fails, it falls back to parsing via filename.
     """
+    global _cooldown_until
+    current_time = time.time()
+    if current_time < _cooldown_until:
+        remaining = int(_cooldown_until - current_time)
+        raise HTTPException(
+            status_code=429, 
+            detail=f"API Quota Exceeded. Please retry in {remaining} seconds."
+        )
+
     try:
         content = await file.read()
         await file.seek(0)
@@ -80,7 +93,18 @@ async def process_receipt_image(file: UploadFile) -> dict:
         }
         
     except Exception as e:
-        logger.warning(f"Google Cloud Vision OCR failed: {e}. Falling back to filename extraction.")
+        error_str = str(e)
+        logger.warning(f"Google Cloud Vision OCR failed: {error_str}. Falling back to filename extraction.")
+        
+        if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
+            import re
+            match = re.search(r"retryDelay': '(\d+)s'", error_str)
+            delay = int(match.group(1)) if match else 60
+            _cooldown_until = time.time() + delay
+            raise HTTPException(
+                status_code=429, 
+                detail=f"API Quota Exceeded. Please retry in {delay} seconds."
+            )
         
         if file.filename:
             filename = file.filename.lower()

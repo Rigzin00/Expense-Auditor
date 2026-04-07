@@ -277,8 +277,6 @@ async def make_decision(expense_id: str, decision: DecisionRequest, db: Session 
     elif decision.action.upper() == "REJECT":
         expense.risk_level = "Rejected"
 
-    expense.auditor_comments = decision.auditorComments
-    
     db.commit()
     db.refresh(expense)
 
