@@ -183,13 +183,21 @@ const EmployeePortal: React.FC = () => {
   const isSubmitDisabled = !selectedFile || !expenseDate || !businessPurpose.trim() || isSubmitting;
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col items-center py-10 px-4">
-      <div className="w-full max-w-lg space-y-6">
-
+    <div className="flex flex-col items-center">
+      <div className="w-full max-w-xl bg-white rounded-3xl border border-gray-200 p-8 sm:p-10 shadow-sm">
+        
         {/* Page Header */}
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900">Submit an Expense</h1>
-          <p className="mt-1 text-sm text-gray-500">Upload your receipt and it will be automatically audited against the company policy.</p>
+        <div className="text-left mb-8">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="bg-black text-white p-1.5 rounded-md flex items-center justify-center">
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"/></svg>
+            </span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Submit Claim</span>
+          </div>
+          <h1 className="text-4xl sm:text-5xl font-medium text-gray-900 font-serif tracking-tight leading-none mb-3">
+            Upload a receipt,<br/><span className="italic text-gray-500 font-normal">save it to the ledger.</span>
+          </h1>
+          <p className="text-sm text-gray-500 mt-4 max-w-sm">Automatically parse your receipt and audit it against the company policy.</p>
         </div>
 
         {/* Success Banner */}
@@ -290,27 +298,34 @@ const EmployeePortal: React.FC = () => {
               {/* Dropzone (shown when no file) */}
               {!selectedFile && (
                 <div
-                  className={`mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed rounded-md relative cursor-pointer transition-colors ${
+                  className={`mt-1 flex justify-center px-6 pt-5 pb-6 border border-dashed rounded-xl relative cursor-pointer transition-colors ${
                     isDragging
                       ? 'border-blue-500 bg-blue-50'
                       : hasError
                       ? 'border-red-400 bg-red-50'
-                      : 'border-gray-300 hover:border-blue-400'
+                      : 'border-gray-300 hover:border-blue-400 focus-within:ring-2 focus-within:ring-blue-500'
                   }`}
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
                   onClick={() => fileInputRef.current?.click()}
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      fileInputRef.current?.click();
+                    }
+                  }}
                 >
-                  <div className="space-y-1 text-center">
-                    <svg className="mx-auto h-10 w-10 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                      <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                  <div className="space-y-2 text-center">
+                    <svg className="mx-auto h-12 w-12 text-gray-300" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                      <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                     <div className="flex text-sm text-gray-600 justify-center mt-1">
-                      <span className="font-medium text-blue-600">Click to upload</span>
+                      <span className="font-semibold text-blue-600 hover:text-blue-500 transition-colors">Click to upload</span>
                       <p className="pl-1">or drag and drop</p>
                     </div>
-                    <p className="text-xs text-gray-400">PNG, JPG, PDF up to 10MB</p>
+                    <p className="text-xs text-gray-400 uppercase tracking-wider">PNG, JPG, PDF up to 10MB</p>
                   </div>
                   <input
                     ref={fileInputRef}
@@ -325,7 +340,7 @@ const EmployeePortal: React.FC = () => {
 
             {/* Claimed Expense Date */}
             <div>
-              <label htmlFor="expenseDate" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="expenseDate" className="block text-sm font-semibold text-gray-700 mb-2">
                 Claimed Expense Date
               </label>
               <input
@@ -337,13 +352,13 @@ const EmployeePortal: React.FC = () => {
                   setHasError(false);
                   setErrorMessage('');
                 }}
-                className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border border-gray-300 rounded-md p-3"
+                className="shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border border-gray-200 hover:border-gray-300 rounded-lg p-3.5 transition-all text-gray-900"
               />
             </div>
 
             {/* Business Purpose */}
             <div>
-              <label htmlFor="businessPurpose" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="businessPurpose" className="block text-sm font-semibold text-gray-700 mb-2">
                 Business Purpose
               </label>
               <textarea
@@ -351,16 +366,16 @@ const EmployeePortal: React.FC = () => {
                 rows={3}
                 value={businessPurpose}
                 onChange={(e) => setBusinessPurpose(e.target.value)}
-                className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border border-gray-300 rounded-md p-3"
+                className="shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border border-gray-200 hover:border-gray-300 rounded-lg p-3.5 transition-all text-gray-900 resize-none"
                 placeholder="Describe the business reason for this expense (e.g., 'Team lunch after Q2 planning meeting')"
               />
-              <p className="mt-1 text-xs text-gray-400">Be specific — the AI uses this to verify compliance with company policy.</p>
+              <p className="mt-2 text-xs text-gray-400">Be specific — the AI uses this to verify compliance with company policy.</p>
             </div>
 
             {/* Error */}
             {hasError && (
-              <div className="text-sm font-medium text-red-700 bg-red-50 p-3 rounded-lg border border-red-200 flex items-start gap-2">
-                <span>⚠️</span>
+              <div className="text-sm font-medium text-red-700 bg-red-50 p-4 rounded-xl border border-red-200 flex items-start gap-3">
+                <span className="mt-0.5">⚠</span>
                 <span>{errorMessage}</span>
               </div>
             )}
@@ -369,10 +384,10 @@ const EmployeePortal: React.FC = () => {
             <button
               type="submit"
               disabled={isSubmitDisabled}
-              className={`w-full flex justify-center items-center gap-2 py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-semibold text-white transition-colors ${
+              className={`w-full flex justify-center items-center gap-2 py-3.5 px-4 rounded-xl shadow-sm text-sm font-semibold text-white transition-all mt-6 ${
                 isSubmitDisabled
-                  ? 'bg-blue-300 cursor-not-allowed'
-                  : 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+                  ? 'bg-blue-300 cursor-not-allowed opacity-70'
+                  : 'bg-[#8ab4f8] hover:bg-[#7ba9ee] active:scale-[0.98]'
               }`}
             >
               {isSubmitting ? (
@@ -396,29 +411,29 @@ const EmployeePortal: React.FC = () => {
         </div>
 
         {/* How It Works */}
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <h2 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wider">How It Works</h2>
-          <ol className="space-y-3">
+        <div className="bg-white rounded-3xl border border-gray-200 p-8 sm:p-10 shadow-sm w-full mt-6">
+          <h2 className="text-[11px] font-bold text-gray-500 mb-6 uppercase tracking-[0.2em]">How It Works</h2>
+          <div className="space-y-6">
             {[
               { step: '1', title: 'Upload Receipt', desc: 'AI extracts merchant, date, amount, and currency via OCR.' },
               { step: '2', title: 'Policy Check', desc: 'The AI cross-references your expense against the 40-page company policy.' },
               { step: '3', title: 'Get a Verdict', desc: 'Your claim is Approved, Flagged, or Rejected with a clear reason.' },
             ].map(({ step, title, desc }) => (
-              <li key={step} className="flex items-start gap-3">
-                <span className="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold">{step}</span>
-                <div>
-                  <p className="text-sm font-medium text-gray-800">{title}</p>
-                  <p className="text-xs text-gray-500">{desc}</p>
+              <div key={step} className="flex items-start gap-4">
+                <span className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-blue-600 text-white text-sm font-bold shadow-sm">{step}</span>
+                <div className="pt-1">
+                  <p className="text-[15px] font-semibold text-gray-900 leading-none mb-1">{title}</p>
+                  <p className="text-[13px] text-gray-500 leading-relaxed">{desc}</p>
                 </div>
-              </li>
+              </div>
             ))}
-          </ol>
+          </div>
         </div>
 
         {/* Recent Claims */}
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-bold text-gray-800">Recent Claims</h2>
+        <div className="bg-white rounded-3xl border border-gray-200 p-8 sm:p-10 shadow-sm w-full mt-6 mb-12">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-[11px] font-bold text-gray-500 uppercase tracking-[0.2em]">Recent Claims</h2>
             <button
               onClick={fetchRecentClaims}
               className="text-xs text-blue-600 hover:text-blue-800 font-medium transition"

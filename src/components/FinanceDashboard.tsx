@@ -96,57 +96,45 @@ const FinanceDashboard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="w-full max-w-6xl mx-auto">
       {/* Header Bar */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Finance Auditor Dashboard</h1>
-              <p className="text-sm text-gray-500 mt-0.5">Review AI-audited expense claims sorted by risk level.</p>
+      <div className="bg-white rounded-3xl border border-gray-200 p-8 sm:p-10 mb-8 shadow-sm">
+        <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-6">
+          <div className="max-w-2xl">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="bg-black text-white p-1.5 rounded-md flex items-center justify-center">
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+              </span>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Finance Auditor</span>
             </div>
-            <button
-              onClick={fetchExpenses}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              Refresh
-            </button>
+            <h1 className="text-5xl sm:text-6xl font-medium text-gray-900 font-serif tracking-tight leading-[1.1]">
+              The finance ledger,<br/>
+              <span className="italic text-gray-500 font-normal">always audited.</span>
+            </h1>
+            <p className="text-gray-500 mt-6 text-sm max-w-lg">
+              Review AI-audited expense claims, track regional progress, and manage policy violations — all in one clean dashboard.
+            </p>
+          </div>
+          
+          <div className="sm:w-64 max-w-full bg-white border border-gray-100 rounded-2xl overflow-hidden self-stretch sm:self-auto flex flex-col justify-center divide-y divide-gray-100">
+             <div className="p-4 flex items-baseline justify-between gap-4">
+               <div>
+                 <p className="text-[10px] uppercase tracking-widest font-bold text-gray-400 mb-1">Total Spend</p>
+                 <p className="text-2xl font-serif text-gray-900">${totalAmount.toFixed(0)}</p>
+               </div>
+             </div>
+             <div className="p-4 flex items-baseline justify-between gap-4">
+               <div>
+                 <p className="text-[10px] uppercase tracking-widest font-bold text-gray-400 mb-1">Flagged / Rejected</p>
+                 <p className="text-xl font-serif text-gray-900">{counts.Flagged} <span className="text-gray-300 font-sans text-sm mx-1">/</span> {counts.Rejected}</p>
+               </div>
+             </div>
           </div>
         </div>
       </div>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="w-full">
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-          {/* Total Claims */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Total Claims</p>
-            <p className="text-3xl font-bold text-gray-900 mt-1">{counts.All}</p>
-            <p className="text-xs text-gray-400 mt-1">All time</p>
-          </div>
-          {/* Flagged */}
-          <div className="bg-white rounded-xl shadow-sm border border-yellow-200 p-5">
-            <p className="text-xs font-medium text-yellow-600 uppercase tracking-wide">⚠ Needs Review</p>
-            <p className="text-3xl font-bold text-yellow-700 mt-1">{counts.Flagged}</p>
-            <p className="text-xs text-gray-400 mt-1">Flagged claims</p>
-          </div>
-          {/* Rejected */}
-          <div className="bg-white rounded-xl shadow-sm border border-red-200 p-5">
-            <p className="text-xs font-medium text-red-600 uppercase tracking-wide">✗ Rejected</p>
-            <p className="text-3xl font-bold text-red-700 mt-1">{counts.Rejected}</p>
-            <p className="text-xs text-gray-400 mt-1">Policy violations</p>
-          </div>
-          {/* Total Amount */}
-          <div className="bg-white rounded-xl shadow-sm border border-blue-200 p-5">
-            <p className="text-xs font-medium text-blue-600 uppercase tracking-wide">$ Total Spend</p>
-            <p className="text-3xl font-bold text-blue-700 mt-1">{totalAmount.toFixed(0)}</p>
-            <p className="text-xs text-gray-400 mt-1">Across all claims</p>
-          </div>
-        </div>
 
         {/* Filter Tabs */}
         <div className="flex items-center gap-2 mb-5 flex-wrap">

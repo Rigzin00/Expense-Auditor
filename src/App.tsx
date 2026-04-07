@@ -36,10 +36,10 @@ function NotificationDropdown({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpe
           setIsOpen(next);
           if (!next && unreadCount > 0) markAllAsRead();
         }}
-        className="relative p-2 rounded-full hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-white transition"
+        className="relative p-2 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200 transition"
         aria-label="Notifications"
       >
-        <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg className="h-5 w-5 text-gray-800" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
         </svg>
         {unreadCount > 0 && (
@@ -99,24 +99,29 @@ function App() {
   return (
     <NotificationProvider>
       <Router>
-        <div className="min-h-screen bg-gray-100 flex flex-col">
+        <div className="min-h-screen bg-[#f4f7f6] flex flex-col font-sans">
           {/* Global Top Navigation Bar */}
-          <nav className="bg-blue-800 text-white shadow-md z-10 sticky top-0">
+          <nav className="bg-white/80 backdrop-blur-md text-gray-900 border-b border-gray-200 z-10 sticky top-0">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="flex items-center justify-between h-14">
+              <div className="flex items-center justify-between h-16">
                 <div className="flex items-center space-x-8">
-                  <span className="font-bold text-xl tracking-tight">Policy-First Auditor</span>
+                  <div className="flex items-center gap-2">
+                    <div className="bg-black text-white w-6 h-6 flex items-center justify-center rounded pl-[1px]">
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                    </div>
+                    <span className="font-semibold text-xs tracking-widest uppercase text-gray-900">Expense Auditor</span>
+                  </div>
 
-                  <div className="hidden sm:flex space-x-4">
+                  <div className="hidden sm:flex space-x-6">
                     <Link
                       to="/employee"
-                      className="px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition"
+                      className="px-2 py-1 text-sm font-medium text-gray-500 hover:text-gray-900 transition"
                     >
                       Employee Portal
                     </Link>
                     <Link
                       to="/finance"
-                      className="px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition"
+                      className="px-2 py-1 text-sm font-medium text-gray-500 hover:text-gray-900 transition"
                     >
                       Finance Dashboard
                     </Link>
@@ -129,7 +134,7 @@ function App() {
           </nav>
 
           {/* Global App Layout for Routes */}
-          <div className="flex-1">
+          <div className="flex-1 px-4 sm:px-6 lg:px-8 py-8">
             <Routes>
               <Route path="/" element={<Navigate to="/employee" replace />} />
               <Route path="/employee" element={<EmployeePortal />} />
