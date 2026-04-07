@@ -18,3 +18,27 @@ The Policy-First AI Expense Auditor is an intelligent web application that autom
 ```bash
 git clone https://github.com/Rigzin00/Expense-Auditor.git
 cd Expense-Auditor
+
+
+cd backend
+
+# Create and activate a Python virtual environment (Windows)
+python -m venv .venv
+.\.venv\Scripts\activate
+# (On Mac/Linux: source .venv/bin/activate)
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Configure Environment Variables
+# Create a `.env` file inside the `backend` directory and add your Google API key:
+# GOOGLE_API_KEY="your_gemini_api_key_here"
+
+# Start the Backend server
+python -m uvicorn main:app --reload
+
+# Install frontend dependencies
+npm install
+
+# Start the local development server
+npm run dev
