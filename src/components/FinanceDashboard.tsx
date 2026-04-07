@@ -100,7 +100,7 @@ const FinanceDashboard: React.FC = () => {
   return (
     <div className="w-full max-w-6xl mx-auto">
       {/* Header Bar */}
-      <div className="bg-white rounded-3xl border border-gray-200 p-8 sm:p-10 mb-8 shadow-sm">
+      <div className="bg-white rounded-2xl sm:rounded-3xl border border-gray-200 p-4 sm:p-10 mb-6 sm:mb-8 shadow-sm">
         <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-6">
           <div className="max-w-2xl">
             <div className="flex items-center gap-2 mb-4">
@@ -109,11 +109,11 @@ const FinanceDashboard: React.FC = () => {
               </span>
               <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Finance Auditor</span>
             </div>
-            <h1 className="text-5xl sm:text-6xl font-medium text-gray-900 font-serif tracking-tight leading-[1.1]">
+            <h1 className="text-3xl sm:text-6xl font-medium text-gray-900 font-serif tracking-tight leading-[1.1]">
               The finance ledger,<br/>
               <span className="italic text-gray-500 font-normal">always audited.</span>
             </h1>
-            <p className="text-gray-500 mt-6 text-sm max-w-lg">
+            <p className="text-gray-500 mt-4 sm:mt-6 text-sm max-w-lg">
               Review AI-audited expense claims, track regional progress, and manage policy violations — all in one clean dashboard.
             </p>
           </div>
@@ -139,13 +139,13 @@ const FinanceDashboard: React.FC = () => {
 
 
         {/* Filter Tabs */}
-        <div className="flex items-center gap-2 mb-5 flex-wrap">
+        <div className="flex items-center gap-2 mb-5 flex-wrap sm:flex-nowrap sm:overflow-x-auto no-scrollbar">
           <span className="text-sm text-gray-500 mr-1">Filter:</span>
           {(['All', 'Flagged', 'Rejected', 'Approved'] as FilterTab[]).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveFilter(tab)}
-              className={filterTabStyle(tab)}
+              className={`${filterTabStyle(tab)} shrink-0`}
             >
               {tab}
               <span className="ml-1.5 text-xs opacity-75">({counts[tab]})</span>
@@ -179,8 +179,35 @@ const FinanceDashboard: React.FC = () => {
               <p className="text-gray-400 font-medium">No {activeFilter !== 'All' ? activeFilter.toLowerCase() + ' ' : ''}claims found.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-100">
+            <>
+              <div className="md:hidden divide-y divide-gray-100">
+                {filteredExpenses.map((expense) => (
+                  <button
+                    key={expense.id}
+                    onClick={() => navigate(`/audit/${expense.id}`)}
+                    className="w-full text-left p-4 hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 truncate">{expense.employeeName || 'N/A'}</p>
+                        <p className="text-sm text-gray-600 truncate">{expense.merchantName || '—'}</p>
+                      </div>
+                      <span className={`px-2.5 py-0.5 inline-flex text-xs font-semibold rounded-full ${getRiskStyles(expense.riskLevel)}`}>
+                        {expense.riskLevel || 'Flagged'}
+                      </span>
+                    </div>
+                    <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-gray-500">
+                      <p><span className="font-medium text-gray-700">Date:</span> {expense.date}</p>
+                      <p><span className="font-medium text-gray-700">Amount:</span> {(expense.currency || 'USD')} {Number(expense.amount).toFixed(2)}</p>
+                      <p className="truncate"><span className="font-medium text-gray-700">Category:</span> {expense.category}</p>
+                      <p className="truncate"><span className="font-medium text-gray-700">Reason:</span> {expense.aiReasoning || '—'}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              <div className="hidden md:block overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-100">
                 <thead>
                   <tr className="bg-gray-50">
                     <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Risk</th>
@@ -231,8 +258,9 @@ const FinanceDashboard: React.FC = () => {
                     </tr>
                   ))}
                 </tbody>
-              </table>
-            </div>
+                </table>
+              </div>
+            </>
           )}
         </div>
 

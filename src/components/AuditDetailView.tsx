@@ -157,9 +157,9 @@ const AuditDetailView: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-gray-100 p-3 sm:p-6 lg:p-8">
       {/* Back button + title */}
-      <div className="max-w-7xl mx-auto mb-6 flex items-center justify-between">
+      <div className="max-w-7xl mx-auto mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <button
           onClick={() => navigate('/finance')}
           className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900 font-medium transition font-sans"
@@ -169,7 +169,7 @@ const AuditDetailView: React.FC = () => {
           </svg>
           Back to Dashboard
         </button>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-start">
           <StatusBadge status={expense.aiAudit.status} />
           <span className="text-xs text-gray-400 font-mono">#{expense.id}</span>
         </div>
@@ -192,12 +192,12 @@ const AuditDetailView: React.FC = () => {
       )}
 
       {/* Two-column layout */}
-      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
 
         {/* ── LEFT: Receipt & Extracted Data ── */}
         <div className="space-y-6">
           {/* Receipt Image Card */}
-          <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="bg-white rounded-xl shadow-md p-4 sm:p-6">
             <h2 className="text-xl font-bold text-gray-800 border-b border-gray-200 pb-3 mb-4 flex items-center gap-2 font-serif">
               <svg className="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -257,7 +257,7 @@ const AuditDetailView: React.FC = () => {
               </svg>
               OCR Extracted Data
             </h2>
-            <dl className="grid grid-cols-2 gap-4">
+            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               {[
                 { label: 'Employee', value: expense.employeeName || 'N/A' },
                 { label: 'Merchant Name', value: expense.extractedData.merchantName },
@@ -270,7 +270,7 @@ const AuditDetailView: React.FC = () => {
                   <dd className="mt-1 text-sm font-semibold text-gray-900">{value}</dd>
                 </div>
               ))}
-              <div className="bg-gray-50 p-3 rounded-lg border border-gray-100 col-span-2">
+              <div className="bg-gray-50 p-3 rounded-lg border border-gray-100 sm:col-span-2">
                 <dt className="text-xs font-medium text-gray-500">Business Purpose</dt>
                 <dd className="mt-1 text-sm font-semibold text-gray-900">{expense.businessPurpose || 'N/A'}</dd>
               </div>
@@ -281,7 +281,7 @@ const AuditDetailView: React.FC = () => {
         {/* ── RIGHT: AI Audit & Override ── */}
         <div className="space-y-6">
           {/* AI Audit Result Card */}
-          <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="bg-white rounded-xl shadow-md p-4 sm:p-6">
             <h2 className="text-lg font-bold text-gray-800 border-b border-gray-200 pb-3 mb-4 flex items-center gap-2">
               <svg className="h-5 w-5 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
@@ -347,7 +347,7 @@ const AuditDetailView: React.FC = () => {
           </div>
 
           {/* Human-in-the-Loop Override Card */}
-          <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="bg-white rounded-xl shadow-md p-4 sm:p-6">
             <h2 className="text-lg font-bold text-gray-800 border-b border-gray-200 pb-3 mb-4 flex items-center gap-2">
               <svg className="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -376,7 +376,7 @@ const AuditDetailView: React.FC = () => {
               />
             </div>
 
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
               <button
                 onClick={() => handleDecision('APPROVE')}
                 disabled={isSubmitting || currentStatus === 'approved'}

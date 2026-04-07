@@ -51,7 +51,7 @@ function NotificationDropdown({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpe
       </button>
 
       {isOpen && (
-        <div className="origin-top-right absolute right-0 mt-2 w-80 rounded-lg shadow-xl bg-white ring-1 ring-black ring-opacity-5 z-50 overflow-hidden">
+        <div className="origin-top-right absolute right-0 mt-2 w-[calc(100vw-1.5rem)] sm:w-80 max-w-sm rounded-lg shadow-xl bg-white ring-1 ring-black ring-opacity-5 z-50 overflow-hidden">
           <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center bg-gray-50">
             <p className="text-sm font-semibold text-gray-800">Notifications</p>
             {unreadCount > 0 && (
@@ -96,6 +96,11 @@ function NotificationDropdown({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpe
 function App() {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
+  const navLinks = [
+    { to: '/employee', label: 'Employee Portal' },
+    { to: '/finance', label: 'Finance Dashboard' },
+  ];
+
   return (
     <NotificationProvider>
       <Router>
@@ -104,37 +109,48 @@ function App() {
           <nav className="bg-white/80 backdrop-blur-md text-gray-900 border-b border-gray-200 z-10 sticky top-0">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="flex items-center justify-between h-16">
-                <div className="flex items-center space-x-8">
+                <div className="flex items-center gap-4 sm:gap-8 min-w-0">
                   <div className="flex items-center gap-2">
                     <div className="bg-black text-white w-6 h-6 flex items-center justify-center rounded pl-[1px]">
                       <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                     </div>
-                    <span className="font-semibold text-xs tracking-widest uppercase text-gray-900">Expense Auditor</span>
+                    <span className="font-semibold text-xs tracking-widest uppercase text-gray-900 whitespace-nowrap">Expense Auditor</span>
                   </div>
 
                   <div className="hidden sm:flex space-x-6">
-                    <Link
-                      to="/employee"
-                      className="px-2 py-1 text-sm font-medium text-gray-500 hover:text-gray-900 transition"
-                    >
-                      Employee Portal
-                    </Link>
-                    <Link
-                      to="/finance"
-                      className="px-2 py-1 text-sm font-medium text-gray-500 hover:text-gray-900 transition"
-                    >
-                      Finance Dashboard
-                    </Link>
+                    {navLinks.map((link) => (
+                      <Link
+                        key={link.to}
+                        to={link.to}
+                        className="px-2 py-1 text-sm font-medium text-gray-500 hover:text-gray-900 transition"
+                      >
+                        {link.label}
+                      </Link>
+                    ))}
                   </div>
                 </div>
 
                 <NotificationDropdown isOpen={isNotificationsOpen} setIsOpen={setIsNotificationsOpen} />
               </div>
+
+              <div className="sm:hidden pb-3 -mt-1">
+                <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+                  {navLinks.map((link) => (
+                    <Link
+                      key={link.to}
+                      to={link.to}
+                      className="shrink-0 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:border-gray-300"
+                    >
+                      {link.label}
+                    </Link>
+                  ))}
+                </div>
+              </div>
             </div>
           </nav>
 
           {/* Global App Layout for Routes */}
-          <div className="flex-1 px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex-1 px-3 sm:px-6 lg:px-8 py-5 sm:py-8">
             <Routes>
               <Route path="/" element={<Navigate to="/employee" replace />} />
               <Route path="/employee" element={<EmployeePortal />} />

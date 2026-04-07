@@ -186,17 +186,17 @@ const EmployeePortal: React.FC = () => {
 
   return (
     <div className="flex flex-col items-center">
-      <div className="w-full max-w-xl bg-white rounded-3xl border border-gray-200 p-8 sm:p-10 shadow-sm">
+      <div className="w-full max-w-xl bg-white rounded-2xl sm:rounded-3xl border border-gray-200 p-4 sm:p-8 lg:p-10 shadow-sm">
         
         {/* Page Header */}
-        <div className="text-left mb-8">
+        <div className="text-left mb-6 sm:mb-8">
           <div className="flex items-center gap-2 mb-4">
             <span className="bg-black text-white p-1.5 rounded-md flex items-center justify-center">
               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"/></svg>
             </span>
             <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Submit Claim</span>
           </div>
-          <h1 className="text-4xl sm:text-5xl font-medium text-gray-900 font-serif tracking-tight leading-none mb-3">
+          <h1 className="text-3xl sm:text-5xl font-medium text-gray-900 font-serif tracking-tight leading-tight sm:leading-none mb-3">
             Upload a receipt,<br/><span className="italic text-gray-500 font-normal">save it to the ledger.</span>
           </h1>
           <p className="text-sm text-gray-500 mt-4 max-w-sm">Automatically parse your receipt and audit it against the company policy.</p>
@@ -238,7 +238,7 @@ const EmployeePortal: React.FC = () => {
         )}
 
         {/* Upload Card */}
-        <div className="bg-white rounded-xl shadow-md p-6 sm:p-8">
+        <div className="bg-white rounded-xl shadow-md p-4 sm:p-8">
           <form onSubmit={handleSubmit} className="space-y-5">
 
             {/* Employee Name */}
@@ -413,7 +413,7 @@ const EmployeePortal: React.FC = () => {
         </div>
 
         {/* How It Works */}
-        <div className="bg-white rounded-3xl border border-gray-200 p-8 sm:p-10 shadow-sm w-full mt-6">
+        <div className="bg-white rounded-2xl sm:rounded-3xl border border-gray-200 p-4 sm:p-8 lg:p-10 shadow-sm w-full mt-6">
           <h2 className="text-[11px] font-bold text-gray-500 mb-6 uppercase tracking-[0.2em]">How It Works</h2>
           <div className="space-y-6">
             {[
@@ -433,7 +433,7 @@ const EmployeePortal: React.FC = () => {
         </div>
 
         {/* Recent Claims */}
-        <div className="bg-white rounded-3xl border border-gray-200 p-8 sm:p-10 shadow-sm w-full mt-6 mb-12">
+        <div className="bg-white rounded-2xl sm:rounded-3xl border border-gray-200 p-4 sm:p-8 lg:p-10 shadow-sm w-full mt-6 mb-12">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-[11px] font-bold text-gray-500 uppercase tracking-[0.2em]">Recent Claims</h2>
             <button
@@ -459,13 +459,13 @@ const EmployeePortal: React.FC = () => {
           ) : (
             <ul className="space-y-2">
               {recentClaims.map((claim) => (
-                <li key={claim.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-100 hover:bg-gray-100 transition">
+                <li key={claim.id} className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-100 hover:bg-gray-100 transition">
                   <div className="flex flex-col min-w-0">
                     <span className="font-medium text-gray-800 text-sm truncate">{claim.merchantName}</span>
                     <span className="text-xs text-gray-400 mt-0.5">{claim.date} · {claim.category}</span>
                     <span className="text-sm text-gray-600 font-medium">{claim.currency} {Number(claim.amount).toFixed(2)}</span>
                   </div>
-                  <span className={getRiskBadge(claim.riskLevel)}>
+                  <span className={`${getRiskBadge(claim.riskLevel)} self-start sm:self-auto`}>
                     {getRiskIcon(claim.riskLevel)} {claim.riskLevel || 'Pending'}
                   </span>
                 </li>
